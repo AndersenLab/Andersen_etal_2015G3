@@ -1,0 +1,1 @@
+Id	Plate	Row	Column	Clog	Scan rate	Status sort	Status sel	TOF	EXT	Green	Yellow	Red	PH Ext	PW Ext	PC Ext	PH Green	PW Green	PCGreen	PH Yellow	PW Yellow	PCYellow	PH Red	PW Red	PCRed	Time Stamp
