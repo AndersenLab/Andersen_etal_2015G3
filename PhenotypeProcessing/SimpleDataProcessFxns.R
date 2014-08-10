@@ -1,3 +1,6 @@
+# A function to extract information about the data including the date the data were collected, experiment name per
+# Andersen Lab naming scheme, the round of experiement, the assay, the plate number on the date, and the drug condition
+
 info <- function(filePath, levels = 1){
     splitfp <- strsplit(filePath,"/")
     dirName <- splitfp[[1]][(length(splitfp[[1]])-levels)]
@@ -19,7 +22,8 @@ info <- function(filePath, levels = 1){
     return(frame)
 }
 
-#Process the setup plates
+#A function to process the setup plates
+
 procSetup <- function(file, tofmin=0, tofmax=2000, extmin=20, extmax=5000) {
     
     #Read in the sorter data from the file
@@ -35,41 +39,7 @@ procSetup <- function(file, tofmin=0, tofmax=2000, extmin=20, extmax=5000) {
     return(proc)
 }
 
-regress <- function(data, completeData, controls){
-    plates <- data[!duplicated(data[,c("assay", "plate", "drug")]), c("assay", "plate", "drug")]
-    controlValues <- plates %>%
-        group_by(assay, plate, drug) %>%
-        do(tryCatch({data.frame(filter(completeData,
-                                       assay==as.character(.$assay[1]),
-                                       as.numeric(plate) %in% as.numeric(unlist(controls[sapply(controls$plates,
-                                                                                                function(x){as.numeric(.$plate[1]) %in% as.numeric(x)}) & controls$assay==.$assay[1], "control"])))) %>%
-                         group_by(row, col) %>%
-                         summarise_each(funs(mean(., na.rm=TRUE)), -date, -experiment, -round, -assay, -plate, -drug)},
-                    error = function(err){return(data.frame(matrix(nrow=96)))}))
-    
-    regressedValues <- data.frame(do.call(cbind, lapply(which(colnames(data)=="n"):ncol(data),
-                                                        function(x){
-                                                            tryCatch({residuals(lm(data[,x] ~ data$assay + controlValues[,which(colnames(controlValues)==colnames(data)[x])], na.action=na.exclude))},
-                                                                     error = function(err){return(NA)})
-                                                        })))
-    
-    
-    reactValues <- data.frame(do.call(cbind, lapply(which(colnames(data)=="n"):ncol(data),
-                                                    function(x){
-                                                        reactNorms <- data[,x] - controlValues[,which(colnames(controlValues)==colnames(data)[x])]
-                                                        if(length(reactNorms)==0){
-                                                            reactNorms <- NA
-                                                        }
-                                                        return(reactNorms)
-                                                    })))
-    
-    finalDF <- data.frame(data, regressedValues)
-    colnames(finalDF)[(which(colnames(finalDF)=="norm.n")+1):ncol(finalDF)] <- paste0("resid.", colnames(finalDF)[which(colnames(finalDF)=="n"):which(colnames(finalDF)=="norm.n")])
-    finalDF <- data.frame(finalDF, reactValues)
-    colnames(finalDF)[(which(colnames(finalDF)=="resid.norm.n")+1):ncol(finalDF)] <- paste0("react.", colnames(finalDF)[which(colnames(finalDF)=="n"):which(colnames(finalDF)=="norm.n")])
-    return(finalDF)
-}
-
+# A function to identify possibly contaminated wells (wells where the number of worms is > 3 sd's above the mean)
 
 possContam <- function(procDataFrame){
     strainMean <- mean(procDataFrame$n[!is.na(procDataFrame$strain)], na.rm = TRUE)
@@ -86,6 +56,8 @@ possContam <- function(procDataFrame){
     }
     return(possibleContam)
 }
+
+# A function to read in the raw plate data, ientify bubbles with an SVM, and summarize the staging of each animal
 
 readPlate_worms <- function(file, tofmin=60, tofmax=2000, extmin=0, extmax=10000, SVM=TRUE) {
     plate <- readSorter(file, tofmin, tofmax, extmin, extmax)
@@ -104,6 +76,9 @@ readPlate_worms <- function(file, tofmin=60, tofmax=2000, extmin=0, extmax=10000
                                            ifelse(modplate$TOF>=300, "adult", NA))))
     return(modplate)
 }
+
+# A function to summarize the populations of worms in each well of a 96-well plate including all parameters measured by
+# a COPAS BIOSORT machine (Union Biometrica) and life stage fractionation
 
 summarizePlate_worms <- function(plate, strains=NULL, quantiles=FALSE, log=FALSE, ends=FALSE) {
     plate <- plate[plate$call50=="object" | plate$TOF == -1 | is.na(plate$call50),]
@@ -302,6 +277,8 @@ summarizePlate_worms <- function(plate, strains=NULL, quantiles=FALSE, log=FALSE
     return(analysis)
 }
 
+# A function to create the setup reports
+
 setupReport <- function(df){
     for(row in 1:nrow(df)){
         if(df$n[row] < 15) {
@@ -317,11 +294,13 @@ setupReport <- function(df){
     
     filename <- paste0("p", df$plate[1], "_", df$drug[1], "_setup.html")
     
-    knit2html("~/SorterDataAssembly/MasterSetupReport2.Rmd", filename)
+    knit2html("PhenotypeProcessing/MasterSetupReport.Rmd", filename)
     
-    file.rename(filename, file.path("~/Dropbox/HTA/Results", paste0(df$date[1], "_", df$experiment[1], df$round[1], df$assay[1]), "reports", filename))
+    file.rename(filename, file.path("./Data", paste0(df$date[1], "_", df$experiment[1], df$round[1], df$assay[1]), "reports", filename))
     return(data.frame(done = 1))
 }
+
+# A function to melt the data frame, necessary for the life stage plots in the score reports
 
 meltdf <- function(score){
     newscore<-data.frame(row=rep(score$row,each=1),col=rep(score$col,each=1),n=rep(score$n,each=1),f.L1=rep(score$f.L1,each=1),f.L2L3=rep(score$f.L2L3,each=1),f.L4=rep(score$f.L4,each=1),f.ad=rep(score$f.ad,each=1))
@@ -329,11 +308,60 @@ meltdf <- function(score){
     return(newscore)
 }
 
-scoreReport <- function(df, contamination){
-    contamination <- filter(contamination, as.character(assay) == as.character(df$assay[1]), as.numeric(as.character(plate)) == as.numeric(as.character(df$plate[1])))
+# A function to create the score reports
+
+scoreReport <- function(df){
     melted.proc <- meltdf(df)
     filename <- paste0("p", df$plate[1], "_", df$drug[1], "_score.html")
-    knit2html("~/SorterDataAssembly/MasterScoreReport2.Rmd", filename)
-    file.rename(filename, file.path("~/Dropbox/HTA/Results", paste0(df$date[1], "_", df$experiment[1], df$round[1], df$assay[1]), "reports", filename))
+    knit2html("PhenotypeProcessing/MasterScoreReport.Rmd", filename)
+    file.rename(filename, file.path("./Data", paste0(df$date[1], "_", df$experiment[1], df$round[1], df$assay[1]), "reports", filename))
     return(data.frame(done = 1))
+}
+
+# A function that will properly arrange control plates into a data frame corresponding to the complete score data
+# then regress out the assay value (day on which worms were scored) along with the control value for that strain of worms.
+# This function will also calculate reaction norms (condition-control) for every strain and every trait.
+
+regress <- function(data, completeData, controls){
+    plates <- data[!duplicated(data[,c("assay", "plate", "drug")]), c("assay", "plate", "drug")]
+    controlValues <- plates %>%
+        group_by(assay, plate, drug) %>%
+        do(try({data.frame(filter(completeData,
+                                  assay==as.character(.$assay[1]),
+                                  as.numeric(as.character(plate)) %in% eval(eval(controls[controls$assay==.$assay[1],"control"]))))}))
+    controlValues <- controlValues %>% group_by(strain) %>%
+        summarise_each(funs(mean(., na.rm=TRUE)), -date, -experiment, -round, -assay, -plate, -drug, -row, -col)
+    
+    finalControl = data.frame(matrix(ncol=ncol(controlValues), nrow=0))
+    colnames(finalControl)=colnames(controlValues)
+    
+    for(i in 1:nrow(data)){
+        if(length(which(controlValues$strain==data$strain[i]))==0){
+            finalControl = rbind.fill(finalControl, data.frame(NA))
+        }else{
+            finalControl = rbind.fill(finalControl, controlValues[which(controlValues$strain==data$strain[i]),])
+        }
+    }
+    
+    regressedValues <- data.frame(do.call(cbind, lapply(which(colnames(data)=="n"):ncol(data),
+                                                        function(x){
+                                                            tryCatch({residuals(lm(data[,x] ~ data$assay + finalControl[,which(colnames(finalControl)==colnames(data)[x])], na.action=na.exclude))},
+                                                                     error = function(err){print(err);return(NA)})
+                                                        })))
+    
+    
+    reactValues <- data.frame(do.call(cbind, lapply(which(colnames(data)=="n"):ncol(data),
+                                                    function(x){
+                                                        reactNorms <- data[,x] - finalControl[,which(colnames(finalControl)==colnames(data)[x])]
+                                                        if(length(reactNorms)==0){
+                                                            reactNorms <- NA
+                                                        }
+                                                        return(reactNorms)
+                                                    })))
+    
+    finalDF <- data.frame(data, regressedValues)
+    colnames(finalDF)[(which(colnames(finalDF)=="norm.n")+1):ncol(finalDF)] <- paste0("resid.", colnames(finalDF)[which(colnames(finalDF)=="n"):which(colnames(finalDF)=="norm.n")])
+    finalDF <- data.frame(finalDF, reactValues)
+    colnames(finalDF)[(which(colnames(finalDF)=="resid.norm.n")+1):ncol(finalDF)] <- paste0("react.", colnames(finalDF)[which(colnames(finalDF)=="n"):which(colnames(finalDF)=="norm.n")])
+    return(finalDF)
 }
