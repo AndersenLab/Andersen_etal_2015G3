@@ -92,7 +92,8 @@ completeData[is.na(completeData$strain) | is.na(completeData$norm.n), which(coln
 # Generate the score reports
 
 if(generateReports){
-    completeData %>% group_by(assay, plate) %>% do(data.frame(scoreReport(., contamination)))
+    completeData %>% group_by(assay, plate) %>% do(data.frame(scoreReport(.)))
+    unlink("figure", recursive=TRUE)
 }
 
 # Get a data frame of all of the control files (which plates match up with which control plates)
