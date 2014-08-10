@@ -1,5 +1,4 @@
 #Begin Josh Bloom mapping functions
-
 library(qtl)
 library(rrBLUP)
 library(foreach)
@@ -84,13 +83,7 @@ getPeakFDR = function(chromosome.peaks.lod, pdata, gdata, perms=100 ,doGPU=F) {
         pLODS <- get.LOD.by.COR(n.pheno, pdata[sample(1:nrow(pdata)),], gdata, doGPU)
         sapply(mindex.split, function(markers) { apply(pLODS[,markers], 1, max) })        
     }
-    # may need to change back to 3
     permpeakLODs= abind(permpeakLODs, along=c(3))
-#     permpeakLODs= rbind(permpeakLODs)
-    
-    
-    
-    
     
     ###### CHROMOSOME and PEAK BASED FDR #################################################################
     obsPcnt = sapply(seq(2, 5, .01), function(thresh) { sum(chromosome.peaks.lod>thresh) }   )
