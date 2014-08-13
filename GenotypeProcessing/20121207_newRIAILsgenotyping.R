@@ -195,6 +195,7 @@ cr$geno$"6"$data[,colnames(cr$geno$"6"$data) %in% rownames(gt[which(gt$BH<0.4),]
 
 cr$geno$"1"$data[,colnames(cr$geno$"1"$data) == "1_13432384_UCE1-1433"] <- NA
 cr$geno$"5"$data[,colnames(cr$geno$"5"$data) == "5_19393678_UCE5-3001"] <- NA
+cr$geno$"5"$data[,colnames(cr$geno$"5"$data) == "5_14503422_CE5-218"] <- NA
 cr$geno$"6"$data[,colnames(cr$geno$"6"$data) == "6_1663691_UCE6-686"] <- NA
 
 # Get all of the SNP names
@@ -213,6 +214,8 @@ for(i in rockmanSNPs){
 removeSnps <- allSnps[!(allSnps %in% keepSnps)]
 
 cr <- drop.markers(cr, removeSnps)
+
+gt3 <- geno.table(cr, scanone=T)
 
 # Impute genotypes on the cross object
 
@@ -240,6 +243,10 @@ cr2 <- readCross(gfile, pfile)
 # Pull out the genotype table
 
 gt2 <- geno.table(cr2, scanone=T)
+
+gt2$color <- ifelse(row.names(gt2)=="CE5-218", "red", "black")
+
+gt2[rownames(gt2)=="CE5-218",]
 
 # Plot the genotype skews. No spikes in the data indicate issues were fixed by imputation.
 
