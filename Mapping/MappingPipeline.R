@@ -1,9 +1,11 @@
 # Load required packages
 library(regress)
-require(dplyr)
-require(qtl)
-require(stringr)
-require(ggplot2)
+library(dplyr)
+library(qtl)
+library(stringr)
+library(ggplot2)
+library(reshape2)
+
 
 
 # Source the functions
@@ -84,6 +86,10 @@ chr.mindex.offset = sapply(mindex.split, min)-1
 
 LODS.01       = get.LOD.by.COR(n.pheno, pdata.01s, gdata, doGPU=F)
 LODS.01s      = LODmatrix.2.scanone(LODS.01, N2xCB4856.cross)
+
+load("Mapping/markers.Rda")
+LODS.01s$pos <- sapply(rownames(LODS.01s), function(x){markers[markers$SNP==x, "WS185.pos"]})
+
 peaklist.01   = getChrPeaks(mindex.split, chr.mindex.offset, LODS.01)
 
 # Get the false discovery rate (FDR) for all traits and save immediately (this step can take several hours)
@@ -103,12 +109,9 @@ peakArray.01  = getPeakArray(peaklist.01, threshold)
 peaksFDR05=data.frame(trait=as.character(colnames(pdata.01s)[peakArray.01[,1]]), marker.index=peakArray.01[,2])
 peakList = split(peakArray.01$markerIndex, peakArray.01$trait)
 
-load("Mapping/markers.Rda")
-
 # trait chr pos LOD VE scaled_effect_size CI.L CI.R
 peakFit=list()
 for(i in names(peakList)) {
-    print(i)
     trait=i
     trait.num=as.numeric(i)
     trait.name=colnames(pdata.01s)[trait.num]
@@ -124,30 +127,36 @@ for(i in names(peakList)) {
     tssq = sum(aov.a[,2])
     a.var.exp = aov.a[1:(nrow(aov.a)-1),2]/tssq  
     a.eff.size= as.vector(coefficients(am))
-    # Mixed model with additive and epistatic term assumes average value per strain
-    #rr=regress(pdata.01s[,trait.num]~1, ~A+AA, pos=c(T,T,T) ,verbose=T)
-    #wg.additive.trait=rr$sigma[['A']]
-    # se are in sqrt(diag(rr$sigma.cov))
-    #wg.epistatic.trait=rr$sigma[['AA']]
-    #rr=regress(pdata.01s[,trait.num]~1, ~A, pos=c(T,T) ,verbose=T)
-    #wg.additive.trait=rr$sigma[['A']]
     
-    peakFit[[i]]=data.frame(trait.name, trait.num, peak.markers, chr=chr.vec, SNP.name, SNP.pos, 
-                            LOD=LOD.vec, var.exp=a.var.exp, eff.size=a.eff.size)
-    #, wg.additive.trait, wg.epistatic.trait)
+    # Calculate confidence interval bounds
+    lodsData <- LODS.01s[,c(1, 2, as.numeric(i)+2)]
+    CIs <- list()
+    for(j in as.numeric(chr.vec)){
+        int <- lodint(lodsData, chr=j, lodcolumn=1)
+        CI.L.marker <- rownames(int)[1]
+        CI.L.pos <- as.numeric(int[1,2])
+        CI.R.marker <- rownames(int)[3]
+        CI.R.pos <- as.numeric(int[3,2])
+        CI <- data.frame(CI.L.marker, CI.L.pos, CI.R.marker, CI.R.pos)
+        CIs <- append(CIs, list(CI))
+    }
+    CIs <- do.call(rbind, CIs)
+    
+    
+    peakFit[[i]]=data.frame(cbind(data.frame(trait=trait.name, SNP=SNP.name, var.exp=a.var.exp, eff.size=a.eff.size), CIs))
 }
 peakFit.df = do.call('rbind', peakFit)
 
+lods <- data.frame(cbind(SNP=rownames(LODS.01s), data.frame(LODS.01s)))
+lods[,c(1,2)] <- lapply(lods[,c(1,2)], as.character)
+lods[,3] <- as.numeric(lods[,3])
+meltLods <- melt(lods, id=.(SNP, chr, pos), value="LOD")
+colnames(meltLods) <- c("SNP", "chr", "pos", "trait", "LOD")
 
-a=sapply(peakFit, function(x) x$wg.additive.trait[1])
-aa=sapply(peakFit, function(x) x$wg.epistatic.trait[1])
-veQTL=sapply(peakFit, function(x) sum(x$var.exp))
-
-#pick out subset of traits with more than 1 QTL
-comp.traits=names(which(sapply(peakFit, function(x) nrow(x))>1))
+finalLods <- merge(meltLods, peakFit.df, by=c("trait", "SNP"), all.x=TRUE)
 
 h2.set=list()
-for(i in comp.traits){
+for(i in 1:ncol(pdata.01s)){
     trait=i
     print(i)
     trait.num=as.numeric(i)
@@ -160,7 +169,12 @@ for(i in comp.traits){
     )
 }
 
+save(h2.set, file="RIAILs0_Heritability.Rda")
 
+mean(sapply(h2.set, function(x){x$rr.all.sigma[1]}))
+mean(sapply(h2.set, function(x){x$rr.all.sigma[2]}))
+mean(sapply(h2.set, function(x){x$rr.all.se[1]}))
+mean(sapply(h2.set, function(x){x$rr.all.se[2]}))
 
 for(col in 3:ncol(LODS.01s)){
     print(col)
