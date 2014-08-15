@@ -90,7 +90,7 @@ LODS.01s      = LODmatrix.2.scanone(LODS.01, N2xCB4856.cross)
 load("Mapping/markers.Rda")
 LODS.01s$pos <- sapply(rownames(LODS.01s), function(x){markers[markers$SNP==x, "WS185.pos"]})
 
-peaklist.01   = getChrPeaks(mindex.split, chr.mindex.offset, LODS.01)
+# peaklist.01   = getChrPeaks(mindex.split, chr.mindex.offset, LODS.01)
 
 # Get the false discovery rate (FDR) for all traits and save immediately (this step can take several hours)
 set.seed(0)
@@ -105,45 +105,57 @@ threshold <- as.numeric(names(LODS.01.FDR)[which(LODS.01.FDR < .05)[1]])
 
 # Get the array of just peaks above threshold
 
-peakArray.01  = getPeakArray(peaklist.01, threshold)
-peaksFDR05=data.frame(trait=as.character(colnames(pdata.01s)[peakArray.01[,1]]), marker.index=peakArray.01[,2])
-peakList = split(peakArray.01$markerIndex, peakArray.01$trait)
+peaks <- do.call(rbind, lapply(3:ncol(LODS.01s), function(x){
+    print(x)
+    data <- data.frame(cbind(SNP=rownames(LODS.01s), data.frame(LODS.01s[,c(1, x)])))
+    data$trait <- colnames(data)[3]
+    colnames(data)[3] <- "LOD"
+    peaks <- data %>%
+        group_by(chr) %>%
+        filter(LOD==max(LOD)) %>%
+        do(data.frame(.[1,])) %>%
+        filter(LOD > threshold)
+    return(peaks)
+}))
+
+# peakArray.01  = getPeakArray(peaklist.01, threshold)
+# peaksFDR05=data.frame(trait=as.character(colnames(pdata.01s)[peakArray.01[,1]]), marker.index=peakArray.01[,2])
+# peakList = split(peakArray.01$markerIndex, peakArray.01$trait)
 
 # trait chr pos LOD VE scaled_effect_size CI.L CI.R
 peakFit=list()
-for(i in names(peakList)) {
-    trait=i
-    trait.num=as.numeric(i)
-    trait.name=colnames(pdata.01s)[trait.num]
-    peak.markers= peakList[[i]]
-    chr.vec = chr[peak.markers] 
-    LOD.vec = LODS.01[trait.num, peak.markers]
-    SNP.name = markers$SNP[peak.markers]
-    SNP.pos = markers$WS185.pos[peak.markers]
-    ax = paste('gdata[,', peak.markers,']', sep='')
+for(i in 1:nrow(peaks)) {
+    trait=as.character(peaks$trait[i])
+    #     trait.num=as.numeric(i)
+    #     trait.name=colnames(pdata.01s)[trait.num]
+    peak.markers=as.character(peaks$SNP[i])
+    chr.vec = as.numeric(as.character(peaks$chr[i]))
+    LOD.vec = LODS.01[which(rownames(LODS.01)==trait),]
+    SNP.name = as.character(peaks$SNP[i]) 
+    ax = paste('gdata[,', which(colnames(gdata)==peak.markers),']', sep='')
     aq = paste(ax, collapse= ' + ')
-    am = lm(paste('pdata.01s[,' , trait.num, ']', '~', (aq), '-1'))
+    am = lm(paste('pdata.01s[,' , which(colnames(pdata.01s)==trait), ']', '~', (aq), '-1'))
     aov.a=anova(am)
     tssq = sum(aov.a[,2])
     a.var.exp = aov.a[1:(nrow(aov.a)-1),2]/tssq  
     a.eff.size= as.vector(coefficients(am))
     
     # Calculate confidence interval bounds
-    lodsData <- LODS.01s[,c(1, 2, as.numeric(i)+2)]
+    lodsData <- LODS.01s[,c(1, 2, which(colnames(LODS.01s)==trait))]
+    lodsData$chr <- as.numeric(as.character(lodsData$chr))
     CIs <- list()
-    for(j in as.numeric(chr.vec)){
-        int <- lodint(lodsData, chr=j, lodcolumn=1)
-        CI.L.marker <- rownames(int)[1]
-        CI.L.pos <- as.numeric(int[1,2])
-        CI.R.marker <- rownames(int)[3]
-        CI.R.pos <- as.numeric(int[3,2])
-        CI <- data.frame(CI.L.marker, CI.L.pos, CI.R.marker, CI.R.pos)
-        CIs <- append(CIs, list(CI))
-    }
+    j <- chr.vec
+    int <- lodint(lodsData, chr=j, lodcolumn=1)
+    CI.L.marker <- rownames(int)[1]
+    CI.L.pos <- as.numeric(int[1,2])
+    CI.R.marker <- rownames(int)[nrow(int)]
+    CI.R.pos <- as.numeric(int[nrow(int),2])
+    CI <- data.frame(CI.L.marker, CI.L.pos, CI.R.marker, CI.R.pos)
+    CIs <- append(CIs, list(CI))
     CIs <- do.call(rbind, CIs)
     
     
-    peakFit[[i]]=data.frame(cbind(data.frame(trait=trait.name, SNP=SNP.name, var.exp=a.var.exp, eff.size=a.eff.size), CIs))
+    peakFit=append(peakFit, list(data.frame(cbind(data.frame(trait=trait, SNP=SNP.name, var.exp=a.var.exp, eff.size=a.eff.size), CIs))))
 }
 peakFit.df = do.call('rbind', peakFit)
 
@@ -171,18 +183,31 @@ for(i in 1:ncol(pdata.01s)){
 
 save(h2.set, file="RIAILs0_Heritability.Rda")
 
+
 mean(sapply(h2.set, function(x){x$rr.all.sigma[1]}))
 mean(sapply(h2.set, function(x){x$rr.all.sigma[2]}))
 mean(sapply(h2.set, function(x){x$rr.all.se[1]}))
 mean(sapply(h2.set, function(x){x$rr.all.se[2]}))
 
-for(col in 3:ncol(LODS.01s)){
-    print(col)
-    title <- colnames(LODS.01s)[col]
+for(i in unique(as.character(finalLods$trait))){
+    print(i)
+    data <- finalLods[as.character(finalLods$trait)==i,]
+    peaksDF <- finalLods[!is.na(finalLods$var.exp) & as.character(finalLods$trait)==i,]
+    title <- i
     fileName = paste0("~/LinkagePlots/", gsub("\\.", "-", title), "_map.pdf")
-    plot2 = ggplot(LODS.01s, aes(x=pos, y=LODS.01s[,col])) + geom_line(size=1) + facet_grid(.~chr) + xlab("position") + ylab("LOD") + ggtitle(title) + geom_hline(yintercept=2.97, colour="red", linetype="dashed")
-    try(ggsave(plot = plot2, filename = fileName, width = 11, height = 4.5))
+    plot = ggplot(data) + geom_line(aes(x=pos/1e6, y=LOD), size=1) + facet_grid(.~chr) + xlab("Position (Mb)") + ylab("LOD") + ggtitle(title) + geom_hline(yintercept=2.97, colour="red", linetype="dashed") + geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) + geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) + geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4)  + geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%"))) 
+    try(ggsave(plot = plot, filename = fileName, width = 11, height = 4.5))
 }
 
+pos[!is.na(var.exp)]/1e6
 
+# for(col in 3:ncol(LODS.01s)){
+#     print(col)
+#     title <- colnames(LODS.01s)[col]
+#     fileName = paste0("~/LinkagePlots/", gsub("\\.", "-", title), "_map.pdf")
+#     plot2 = ggplot(LODS.01s, aes(x=pos, y=LODS.01s[,col])) + geom_line(size=1) + facet_grid(.~chr) + xlab("position") + ylab("LOD") + ggtitle(title) + geom_hline(yintercept=2.97, colour="red", linetype="dashed") + geom_point(shape=25, aes(x=pos[!is.na(var.exp)], y = 1.2*LOD[!is.na(var.exp)]), fill="red")
+#     try(ggsave(plot = plot2, filename = fileName, width = 11, height = 4.5))
+# }
+# 
+# 
 
