@@ -118,16 +118,10 @@ peaks <- do.call(rbind, lapply(3:ncol(LODS.01s), function(x){
     return(peaks)
 }))
 
-# peakArray.01  = getPeakArray(peaklist.01, threshold)
-# peaksFDR05=data.frame(trait=as.character(colnames(pdata.01s)[peakArray.01[,1]]), marker.index=peakArray.01[,2])
-# peakList = split(peakArray.01$markerIndex, peakArray.01$trait)
-
 # trait chr pos LOD VE scaled_effect_size CI.L CI.R
 peakFit=list()
 for(i in 1:nrow(peaks)) {
     trait=as.character(peaks$trait[i])
-    #     trait.num=as.numeric(i)
-    #     trait.name=colnames(pdata.01s)[trait.num]
     peak.markers=as.character(peaks$SNP[i])
     chr.vec = as.numeric(as.character(peaks$chr[i]))
     LOD.vec = LODS.01[which(rownames(LODS.01)==trait),]
@@ -208,6 +202,3 @@ for(i in unique(as.character(peakFit.df$trait))){
         geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%"))) 
     try(ggsave(plot = plot, filename = fileName, width = 11, height = 4.5))
 }
-
-
-
