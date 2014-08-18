@@ -145,7 +145,7 @@ for(i in 1:nrow(peaks)) {
     lodsData$chr <- as.numeric(as.character(lodsData$chr))
     CIs <- list()
     j <- chr.vec
-    int <- lodint(lodsData, chr=j, lodcolumn=1)
+    int <- cint(lodsData, chr=j, lodcolumn=3)
     CI.L.marker <- rownames(int)[1]
     CI.L.pos <- as.numeric(int[1,2])
     CI.R.marker <- rownames(int)[nrow(int)]
@@ -189,25 +189,25 @@ mean(sapply(h2.set, function(x){x$rr.all.sigma[2]}))
 mean(sapply(h2.set, function(x){x$rr.all.se[1]}))
 mean(sapply(h2.set, function(x){x$rr.all.se[2]}))
 
-for(i in unique(as.character(finalLods$trait))){
+for(i in unique(as.character(peakFit.df$trait))){
     print(i)
     data <- finalLods[as.character(finalLods$trait)==i,]
     peaksDF <- finalLods[!is.na(finalLods$var.exp) & as.character(finalLods$trait)==i,]
     title <- i
     fileName = paste0("~/LinkagePlots/", gsub("\\.", "-", title), "_map.pdf")
-    plot = ggplot(data) + geom_line(aes(x=pos/1e6, y=LOD), size=1) + facet_grid(.~chr) + xlab("Position (Mb)") + ylab("LOD") + ggtitle(title) + geom_hline(yintercept=2.97, colour="red", linetype="dashed") + geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) + geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) + geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4)  + geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%"))) 
+    plot = ggplot(data) +
+        geom_line(aes(x=pos/1e6, y=LOD), size=1) +
+        facet_grid(.~chr) +
+        xlab("Position (Mb)") +
+        ylab("LOD") +
+        ggtitle(title) +
+        geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+        geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
+        geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
+        geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +
+        geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%"))) 
     try(ggsave(plot = plot, filename = fileName, width = 11, height = 4.5))
 }
 
-pos[!is.na(var.exp)]/1e6
 
-# for(col in 3:ncol(LODS.01s)){
-#     print(col)
-#     title <- colnames(LODS.01s)[col]
-#     fileName = paste0("~/LinkagePlots/", gsub("\\.", "-", title), "_map.pdf")
-#     plot2 = ggplot(LODS.01s, aes(x=pos, y=LODS.01s[,col])) + geom_line(size=1) + facet_grid(.~chr) + xlab("position") + ylab("LOD") + ggtitle(title) + geom_hline(yintercept=2.97, colour="red", linetype="dashed") + geom_point(shape=25, aes(x=pos[!is.na(var.exp)], y = 1.2*LOD[!is.na(var.exp)]), fill="red")
-#     try(ggsave(plot = plot2, filename = fileName, width = 11, height = 4.5))
-# }
-# 
-# 
 
