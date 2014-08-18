@@ -1,39 +1,6 @@
 Sorter Data Assembly and Report Generation
 ==========================================
 
-ExperimentRunner.py
--------------------
-Use this program to run both PlateStitcher.py and SimpleDataProcess.R on experiment directories.
-
-### Usage
-
-1. Run from the command line `$ python ExperimentRunner.py [directory list]`
-	+ Example `
-
-PlateStitcher.py
-----------------
-This program is run on a directory containing either the raw setup or raw score files for the high throughput assays. It is designed such that it can, and should, be run from a directory external to that in which the data files are stored.
-
-### Naming Conventions
-
-Naming conventions are critical to the correct execution of this code. The convention is outlined below:
-
-+ All plates should be named in the following manner: **plateNumber_condition-notes.txt**
-	+ Plate number should always be the letter "p" followed immediately by the two digit representation of the number (i.e. "08" or "15")
-	+ Be careful of spelling errors in the condition name, though this is not critical as the program will prompt you before stitching together plates with matching numbers and different condition names. Unfixed Spelling errors will cause issues later on in the processing and mapping code.
-	+ Anything in the notes section of the name will be ignored by the program
-	+ The file ***must*** be saved as .txt
-	+ Plate number and condition name ***must*** be separated by an underscore
-		+ Underscore are reserved characters, **DO NOT** use them to separate portions of the condition name, use dashes
-		+ **Example:** 20140505_abamectin_25C.txt should be 20140505_abamectin-25C.txt if you would like to differentiate it from abamectin at 20 degrees C, etc.
-		+ The notes section of the name is reserved for name appendices from the PlateStitcher.py script
-		+ **File names should only contain one underscore (to separate the date and condition name) when originally saved**
-
-### Usage
-
-1. **Only run PlateStitcher through ExperimentRunner.py, it cannot be used on its own**
-
-
 SimpleDataProcess.R
 -------------------
 
@@ -54,8 +21,8 @@ Data on the date, round, description, assay, plate number, and condition of each
 
 All of the following files should be in the same directory as the SetupAndScoreReportGenerator.R file:
 
-+ MasterSetupReport2.Rmd - Markdown template for the setup reports
-+ MasterScoreReport2.Rmd - Markdown template for the score reports
++ MasterSetupReport.Rmd - Markdown template for the setup reports
++ MasterScoreReport.Rmd - Markdown template for the score reports
 + PresentationStyle.RData - Presentation style specs for plots in the reports
 + SimpleDataProcessFxns.R - File containing most of the functions to process the raw sorter data
 
@@ -136,7 +103,7 @@ strains <- c("CX11285", NA, "ED3048", NA, "JU1200", NA, "CX11315", NA, "JU1440",
 
 ### Usage
 
-1. **Only run PlateStitcher through ExperimentRunner.py, it cannot be used on its own**
+The actual data processing can be run from SimpleDataProcessor alone. External functions can be found in SimpleDataProcessFxns.R. 
 
 
 
