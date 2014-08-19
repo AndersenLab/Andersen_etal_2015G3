@@ -243,6 +243,8 @@ summarizePlate_worms <- function(plate, strains=NULL, quantiles=FALSE, log=FALSE
                                                             iqr.TOF=quantile(TOF, na.rm=TRUE, probs=.75)-quantile(TOF, na.rm=TRUE, probs=.25),
                                                             var.EXT=var(EXT),
                                                             iqr.EXT=quantile(EXT, na.rm=TRUE, probs=.75)-quantile(EXT, na.rm=TRUE, probs=.25),
+                                                            var.norm.EXT=var(norm.EXT),
+                                                            iqr.norm.EXT=quantile(norm.EXT, na.rm=TRUE, probs=.75)-quantile(norm.EXT, na.rm=TRUE, probs=.25),
                                                             var.red=var(red),
                                                             iqr.red=quantile(red, na.rm=TRUE, probs=.75)-quantile(red, na.rm=TRUE, probs=.25),
                                                             var.green=var(green),
