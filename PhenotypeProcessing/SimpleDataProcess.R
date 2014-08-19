@@ -11,7 +11,7 @@ source("PhenotypeProcessing/SimpleDataProcessFxns.R")
 # Determines whether reports should be generated or not (TRUE to generate reports, FALSE to skip report generation)
 # Note: Report generation takes ~45 min
 
-generateReports <- TRUE
+generateReports <- FALSE
 
 # Set all experiment directories
 
@@ -118,9 +118,4 @@ colnames(controls) <- c("assay", "control", "plates")
 finalData <- completeData %>% group_by(drug) %>% do(regress(., completeData, controls)) %>% arrange(assay)
 finalData[finalData$drug=="control",which(colnames(finalData)=="resid.n"):ncol(finalData)] <- NA
 
-# Extract information about the data and save the final cleaned, processed data file into the data folder
-
-experiment <- info(directories[1], levels=0)$experiment
-round <- info(directories[1], levels=0)$round
-
-write.csv(finalData, paste0("Data/", experiment, round, "_ProcessedPhenotypes.csv"))
+write.csv(finalData, paste0("Data/ProcessedPhenotypes.csv"))
