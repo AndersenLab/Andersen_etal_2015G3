@@ -66,11 +66,117 @@ ggplot(fig4DataBControlMap) +
     xlab("Position (Mb)") +
     ylab("LOD") +
     ggtitle("Lifetime Fecundity in Control Conditions") +
+    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
     geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
-    geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
+#     geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
+#     geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
     geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +
     geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%")))
+
+
+
+
+
+
+
+## Figure 5
+fig5Data <- read.csv("Data/MappingPhenotypes.csv")
+
+# A
+ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.TOF)) + geom_bar() + theme_bw() + presentation + ggtitle("Distribution of Median Time of Flight Values\nin Control Conditions") + xlab("Median Time of Flight") + ylab("Count")
+
+# B
+fig5DataBControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.median.TOF")
+fig5DataBControlMap$chr <- ifelse(fig5DataBControlMap$chr==1, "I",
+                                  ifelse(fig5DataBControlMap$chr==2, "II",
+                                         ifelse(fig5DataBControlMap$chr==3, "III",
+                                                ifelse(fig5DataBControlMap$chr==4, "IV",
+                                                       ifelse(fig5DataBControlMap$chr==5, "V", "X")))))
+peaksDF <- fig5DataBControlMap[!is.na(fig5DataBControlMap$var.exp) & as.character(fig5DataBControlMap$trait)=="control.median.TOF",]
+ggplot(fig5DataBControlMap) +
+    theme_bw() +
+    presentation +
+    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
+    facet_grid(.~chr, scales="free_x") +
+    xlab("Position (Mb)") +
+    ylab("LOD") +
+    ggtitle("Median Time of Flight in Control Conditions") +
+    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+    #     geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
+    #     geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
+    geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +
+    geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
+
+
+# C
+ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.EXT)) + geom_bar() + theme_bw() + presentation + ggtitle("Distribution of Median Extinction Values\nin Control Conditions") + xlab("Median Extinction") + ylab("Count")
+
+# D
+fig5DataDControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.median.EXT")
+fig5DataDControlMap$chr <- ifelse(fig5DataDControlMap$chr==1, "I",
+                                  ifelse(fig5DataDControlMap$chr==2, "II",
+                                         ifelse(fig5DataDControlMap$chr==3, "III",
+                                                ifelse(fig5DataDControlMap$chr==4, "IV",
+                                                       ifelse(fig5DataDControlMap$chr==5, "V", "X")))))
+peaksDF <- fig5DataDControlMap[!is.na(fig5DataDControlMap$var.exp) & as.character(fig5DataDControlMap$trait)=="control.median.EXT",]
+ggplot(fig5DataDControlMap) +
+    theme_bw() +
+    presentation +
+    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
+    facet_grid(.~chr, scales="free_x") +
+    xlab("Position (Mb)") +
+    ylab("LOD") +
+    ggtitle("Median Extinction in Control Conditions") +
+    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+    #     geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
+    #     geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
+    geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +
+    geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
+
+
+# E
+ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.norm.EXT)) + geom_bar() + theme_bw() + presentation + ggtitle("Distribution of Median Normalized Extinction Values\nin Control Conditions") + xlab("Median Normalized Extinction") + ylab("Count")
+
+# F
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # fig2DataBPQMap <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_MasterMap.csv") %>% filter(condition=="paraquat", trait=="n")

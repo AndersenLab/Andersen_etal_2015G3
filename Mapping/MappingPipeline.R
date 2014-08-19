@@ -213,6 +213,7 @@ for(i in unique(as.character(finalLods$trait))){
             ylab("LOD") +
             ggtitle(title) +
             geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+            geom_segment(aes(xstart = CI.L.pos/1e6, xend=CI.R.pos/1e6, yend=0), arrow = arrow(length = unit(0.1,"cm"))
             geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
             geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
             geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +

@@ -118,4 +118,4 @@ colnames(controls) <- c("assay", "control", "plates")
 finalData <- completeData %>% group_by(drug) %>% do(regress(., completeData, controls)) %>% arrange(assay)
 finalData[finalData$drug=="control",which(colnames(finalData)=="resid.n"):ncol(finalData)] <- NA
 
-write.csv(finalData, paste0("Data/ProcessedPhenotypes.csv"))
+write.csv(finalData, file="Data/ProcessedPhenotypes.csv", row.names=FALSE)
