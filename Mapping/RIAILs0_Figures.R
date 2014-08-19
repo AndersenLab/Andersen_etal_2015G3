@@ -1,0 +1,348 @@
+########################################################################################
+########################################################################################
+########################################################################################
+########################################################################################
+# For RIAILs0 figures, here is the plan. All figures should be in theme_bw() to be compatible with publication.
+# 
+# Figure 1: Allele frequencies across each of the six chromosomes with a dotted red line at a frequency of 0.5. Matt's frequencies can be shown in light gray. Our frequencies can be shown in black. -----DONE-----
+# 
+# Figure 2: Power calculations for larger 359 RIAIL collection. -----DONE-----
+# 
+# Figure 3: Pictorial overview of the HTA pipeline -----DONE-----
+# 
+# Figure 4a: Boxplots for norm.n of N2, CB4856, and RIAILs in control conditions. N2 in orange, CB in blue, and RIAILs in gray. -----DONE----- 
+# Figure 4b: Mapping of norm.n in control conditions. Line should be weight 1. X-axis is physical position, free_x on faceting by chromosome, y-axis is LOD score, peaks are shown as upside down red triangles -----DONE-----
+# 
+# I'm imagining a and b will be on top, c and d in middle, and e and f on bottom for a nearly full page figure.
+# Figure 5a: Histogram of median TOF in control conditions
+# Figure 5b: Map of median TOF
+# Figure 5c: Histogram of median EXT in control conditions
+# Figure 5d: Map of median EXT
+# Figure 5e: Histogram of median norm.EXT in control conditions
+# Figure 5f: Map of median norm.EXT
+# 
+# Here is our cool figure as discussed before. Each quantile or IQR or trait will be its own color on the central 96-well trait array. 
+# Figure 6a: 96-well layout of median norm.EXT histograms with color lines and ranges
+# Figure 6b-g: q10, q25, median, q75, q90, IQR or var
+# 
+# Figure 7: Paraquat dose response
+# 
+# Figure 8a: histogram of median norm.EXT in control (black) and paraquat (red) conditions
+# Figure 8b: Map of paraquat trait that maps
+# 
+# Figure 9: NIL results (if we still have overlap with real QTL)
+# 
+# Table 1: QX1430 vs. N2 for genetic incompatibility
+# 
+# Table 2: Mapping results: Treatment, trait, QTL#, marker, peak phys. position, L CI, R CI, variance explained 
+########################################################################################
+########################################################################################
+########################################################################################
+########################################################################################
+
+library(dplyr) #Version 0.2
+
+load("PhenotypeProcessing/PresentationStyle.RData")
+
+## Figure 4A
+fig4DataA <- read.csv("Data/MappingPhenotypes.csv")
+nData <- fig4DataA %>% filter(drug=="control") %>% select(strain, n) %>% mutate(group=ifelse(strain=="N2", "N2", ifelse(strain=="CB4856", "CB4856", "RIAILs")))
+
+ggplot(nData, aes(x=factor(group), y=n)) + geom_boxplot(aes(fill=factor(group))) + theme_bw() + xlab(NULL) + ylab("Number of offspring") + theme(legend.position="none") + ggtitle("Lifetime Fecundity") + scale_x_discrete(limits=c("N2", "CB4856", "RIAILs"), labels=c("Bristol", "Hawaii", "RIAILs")) + scale_fill_manual(values = c("N2" = "blue","CB4856" = "orange","RIAILs" = "gray")) + presentation
+
+## Figure 4B
+fig4DataBControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.n")
+fig4DataBControlMap$chr <- ifelse(fig4DataBControlMap$chr==1, "I",
+                                  ifelse(fig4DataBControlMap$chr==2, "II",
+                                         ifelse(fig4DataBControlMap$chr==3, "III",
+                                                ifelse(fig4DataBControlMap$chr==4, "IV",
+                                                       ifelse(fig4DataBControlMap$chr==5, "V", "X")))))
+peaksDF <- fig4DataBControlMap[!is.na(fig4DataBControlMap$var.exp) & as.character(fig4DataBControlMap$trait)=="control.n",]
+ggplot(fig4DataBControlMap) +
+    theme_bw() +
+    presentation +
+    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
+    facet_grid(.~chr, scales="free_x") +
+    xlab("Position (Mb)") +
+    ylab("LOD") +
+    ggtitle("Lifetime Fecundity in Control Conditions") +
+    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+    geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
+    geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
+    geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +
+    geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%")))
+
+
+# fig2DataBPQMap <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_MasterMap.csv") %>% filter(condition=="paraquat", trait=="n")
+# fig2DataBControlRaw <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv") %>% filter(strain!="N2", strain!="CB4856", drug=="control") %>% select(strain, n) %>% group_by(strain) %>% summarise(n=mean(n))
+# fig2DataBPQRaw <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv") %>% filter(strain!="N2", strain!="CB4856", drug=="paraquat") %>% select(strain, n) %>% group_by(strain) %>% summarise(n=mean(n))
+# thresholdControl <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_thresholds.csv") %>% filter(condition=="control", trait=="n") %>% select(threshold) %>% as.numeric(.)
+# thresholdPQ <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_thresholds.csv") %>% filter(condition=="paraquat", trait=="n") %>% select(threshold) %>% as.numeric(.)
+
+getChrPeaks = function(yourScanOne) {
+    ###getting the max LOD values per chromosome
+    chr.peaks.lod = tapply(yourScanOne$lod, yourScanOne$chr, max)
+    ###finding the number of markers on each chromosome
+    chr.mindex.offset = tapply(yourScanOne$lod, yourScanOne$chr, length)
+    ###uses the number of markers per chromosome to find the offset for the max LOD marker index.
+    ###when finding the max LOD marker index, which.max will start at 1 for each chromosome,
+    ###but we need it to match up to gdata later, and the offset will allow that.
+    chr.mindex.offset = c(0, cumsum(chr.mindex.offset)[1:5])
+    ### get marker index of LOD peaks per chromosomes                             
+    chr.peaks.index = tapply(yourScanOne$lod, yourScanOne$chr, which.max)
+    ### add offset to LOD peak marker index                             
+    chr.peaks.index = chr.peaks.index + chr.mindex.offset
+    #combines the peak LOD numbers and their marker indices
+    return(list(chr.peaks.lod = chr.peaks.lod, chr.peaks.index=chr.peaks.index))
+}
+
+getPeakArray = function(peaklist, threshold, multiTraits=FALSE) {
+    tryCatch( {
+        keepPeaks   = which(peaklist$chr.peaks.lod>threshold, arr.ind=T)
+        if(multiTraits){
+            kP = data.frame(rownames(keepPeaks), peaklist$chr.peaks.index[keepPeaks])
+            names(kP)=c('trait', 'markerIndex') 
+            kP = kP[order(kP$trait, kP$markerIndex),]
+            return(kP)} 
+        else{
+            kP = data.frame(peaklist$chr.peaks.index[keepPeaks])
+            names(kP)="markerIndex"
+            return(kP)}
+    }, error=function(e) {return(NULL) })		
+}
+
+getPhenoResids = function(cross.phenotypes,gdata, peakArray, intercept=FALSE) {
+    presids = cross.phenotypes
+    spA = peakArray
+    if(length(spA)>0){
+        if(intercept) {
+            rr = residuals(lm(cross.phenotypes[,yourTransformation]~gdata    [,spA$markerIndex]))
+        }else{
+            rr = residuals(lm(cross.phenotypes[,yourTransformation]~gdata[,spA$markerIndex]-1))
+        }
+        presids[as.numeric(names(rr)),yourTransformation]=rr
+    }
+    return(presids)
+}
+
+extractScaledGenotype=function(impcross){ (do.call('cbind', sapply(impcross$geno, function(x) { x$data }))*2)-3 }
+
+getPeaks <- function(rawData, mapData, threshold){
+    strXSNPs <- read.csv("~/LinkageMapping/StrainsBySNPs.csv")
+    colnames(strXSNPs)[1] <- "strain" 
+    
+    inPeak <- data.frame(matrix(ncol=ncol(mapData), nrow=0))
+    colnames(inPeak) <- colnames(mapData)
+    peaks <- data.frame(matrix(ncol=ncol(mapData), nrow=0))
+    colnames(peaks) <- colnames(mapData)
+    for(i in 1:nrow(mapData)){
+        if(mapData[i,]$lod > threshold){
+            inPeak <- rbind(inPeak, mapData[i,])
+        } else {
+            if(nrow(inPeak)!=0){
+                peaks <- rbind(peaks, inPeak[which(inPeak$lod==max(inPeak$lod)),])
+            }
+            inPeak <- data.frame(matrix(ncol=ncol(mapData), nrow=0))
+            colnames(inPeak) <- colnames(mapData)
+        }
+    }
+    
+    pass <- tryCatch({peaks <- peaks %>% group_by(chr) %>% filter(lod==max(lod))}, error = function(err){return(FALSE)})
+    
+    if(pass==FALSE){
+        return(NA)
+    }
+    
+    VE <- data.frame(matrix(nrow=0, ncol=(ncol(peaks)+1)))
+    colnames(VE) <- c(colnames(peaks), "VE")
+    for(i in 1:nrow(peaks)){
+        marker <- gsub("-", "\\.", as.character(peaks[i, "marker"]))
+        genos <- strXSNPs[,c("strain", marker)]
+        total <- merge(genos, rawData, by="strain")
+        variance <- cor(total[,2], total[,3])^2
+        VE <- rbind(VE, data.frame(peaks[i,], VE=variance))
+    }
+    return(VE)
+}
+
+
+
+
+
+g <- extractScaledGenotype(N2xCB4856.cross)
+
+
+tester <- getChrPeaks(fig2DataBControlMap)
+
+tester2 <- getPeakArray(tester, thresholdControl)
+
+getPhenoResids <- 
+
+VE <- getPeaks(fig2DataBControlRaw, fig2DataBControlMap, thresholdControl)
+
+confint <- function(map){
+    class(map) <- c("scanone", "data.frame")
+    map <- map[,c("chr", "condition", "trait", "lod", "pos","marker")]
+    conf <- lodint(map, chr="IV", lodcolumn=2)
+    return(conf)
+}
+
+conf <- confint(fig2DataBControlMap)
+
+ggplot(fig2DataBControlMap, aes(x=pos, y=lod)) + geom_line(size=1) + geom_hline(yintercept=thresholdControl, colour = "gray", linetype="dashed") + facet_grid(.~chr) + ggtitle(paste0("Lifetime fecundity under control conditions\nn=", nrow(fig2DataBControlRaw), " RIAILs")) + xlab("Position") + ylab("LOD") + geom_point(data=VE, aes(x=pos, y=1.05*max(fig2DataBControlMap$lod)), shape=25, size = 3, fill="red", colour="red") + geom_text(data=VE, aes(x=pos, y=1.09*max(fig2DataBControlMap$lod), label=paste0(round(100*VE, 0), "%")), size = 4) + geom_segment(data=conf, aes(x=min(pos), xend=max(pos), y=0, yend=0), colour="red", size=1.5)
+
+ggplot(fig2DataBPQ, aes(x=pos, y=lod)) + geom_line(size=1) + geom_hline(yintercept=thresholdPQ, colour = "gray", linetype="dashed") + facet_grid(.~chr) + ggtitle("Paraquat N") + xlab("Position") + ylab("LOD")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Figure 3A
+# Read in data and summarise mean.TOF by strain
+fig3DataA <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv") %>% filter(strain!="N2", strain!="CB4856", !is.na(strain)) %>% group_by(strain) %>% summarise(mean.mean.TOF=mean(mean.TOF))
+
+#Plot the histogram
+ggplot(fig3DataA, aes(x=mean.mean.TOF)) + geom_histogram(binwidth=10) + xlab("Mean Time of Flight") + ylab("Count") + geom_vline(xintercept=quantile(fig3DataA$mean.mean.TOF, probs=c(.10, .25, .5, .75, .9), na.rm=TRUE), colour="red")
+
+## Figure 3B
+fig3DataBControlMap10 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_MasterMap.csv") %>% filter(condition=="control", trait=="q10.TOF")
+fig3DataBControlMap25 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_MasterMap.csv") %>% filter(condition=="control", trait=="q25.TOF")
+fig3DataBControlMap50 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_MasterMap.csv") %>% filter(condition=="control", trait=="q50.TOF")
+fig3DataBControlMap75 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_MasterMap.csv") %>% filter(condition=="control", trait=="q75.TOF")
+fig3DataBControlMap90 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_MasterMap.csv") %>% filter(condition=="control", trait=="q90.TOF")
+
+fig3DataBControlRaw10 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv") %>% filter(strain!="N2", strain!="CB4856", drug=="control") %>% select(strain, q10.TOF) %>% group_by(strain) %>% summarise(q10.TOF=mean(q10.TOF))
+fig3DataBControlRaw25 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv") %>% filter(strain!="N2", strain!="CB4856", drug=="control") %>% select(strain, q25.TOF) %>% group_by(strain) %>% summarise(q25.TOF=mean(q25.TOF))
+fig3DataBControlRaw50 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv") %>% filter(strain!="N2", strain!="CB4856", drug=="control") %>% select(strain, median.TOF) %>% group_by(strain) %>% summarise(median.TOF=mean(median.TOF))
+fig3DataBControlRaw75 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv") %>% filter(strain!="N2", strain!="CB4856", drug=="control") %>% select(strain, q75.TOF) %>% group_by(strain) %>% summarise(q75.TOF=mean(q75.TOF))
+fig3DataBControlRaw90 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv") %>% filter(strain!="N2", strain!="CB4856", drug=="control") %>% select(strain, q90.TOF) %>% group_by(strain) %>% summarise(q90.TOF=mean(q90.TOF))
+
+thresholdControl10 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_thresholds.csv") %>% filter(condition=="control", trait=="q10.TOF") %>% select(threshold) %>% as.numeric(.)
+thresholdControl25 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_thresholds.csv") %>% filter(condition=="control", trait=="q25.TOF") %>% select(threshold) %>% as.numeric(.)
+thresholdControl50 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_thresholds.csv") %>% filter(condition=="control", trait=="median.TOF") %>% select(threshold) %>% as.numeric(.)
+thresholdControl75 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_thresholds.csv") %>% filter(condition=="control", trait=="q75.TOF") %>% select(threshold) %>% as.numeric(.)
+thresholdControl90 <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_thresholds.csv") %>% filter(condition=="control", trait=="q90.TOF") %>% select(threshold) %>% as.numeric(.)
+
+getPeaks <- function(rawData, mapData, threshold){
+    strXSNPs <- read.csv("~/LinkageMapping/StrainsBySNPs.csv")
+    colnames(strXSNPs)[1] <- "strain" 
+    
+    inPeak <- data.frame(matrix(ncol=ncol(mapData), nrow=0))
+    colnames(inPeak) <- colnames(mapData)
+    peaks <- data.frame(matrix(ncol=ncol(mapData), nrow=0))
+    colnames(peaks) <- colnames(mapData)
+    for(i in 1:nrow(mapData)){
+        if(mapData[i,]$lod > threshold){
+            inPeak <- rbind(inPeak, mapData[i,])
+        } else {
+            if(nrow(inPeak)!=0){
+                peaks <- rbind(peaks, inPeak[which(inPeak$lod==max(inPeak$lod)),])
+            }
+            inPeak <- data.frame(matrix(ncol=ncol(mapData), nrow=0))
+            colnames(inPeak) <- colnames(mapData)
+        }
+    }
+    
+    tryCatch({peaks <- peaks %>% group_by(chr) %>% filter(lod==max(lod))}, error = function(err){return(NA)})
+    
+    VE <- data.frame(matrix(nrow=0, ncol=(ncol(peaks)+1)))
+    colnames(VE) <- c(colnames(peaks), "VE")
+    for(i in 1:nrow(peaks)){
+        marker <- gsub("-", "\\.", as.character(peaks[i, "marker"]))
+        genos <- strXSNPs[,c("strain", marker)]
+        total <- merge(genos, rawData, by="strain")
+        variance <- cor(total[,2], total[,3])^2
+        VE <- rbind(VE, data.frame(peaks[i,], VE=variance))
+    }
+    return(VE)
+}
+
+confint <- function(map, VE){
+    class(map) <- c("scanone", "data.frame")
+    map <- map[,c("chr", "condition", "trait", "lod", "pos","marker")]
+    conf <- do.call(rbind, lapply(unique(VE$chr), function(x){lodint(map, chr=x, lodcolumn=2)}))
+    conf <- melt(conf[,c("chr", "pos")], id="chr") %>% group_by(chr) %>% summarise(min=min(value), max=(max(value)))
+    colnames(conf)[1] <- "chr"
+    return(conf)
+}
+
+VE <- getPeaks(fig3DataBControlRaw10, fig3DataBControlMap10, thresholdControl10)
+
+conf <- confint(fig3DataBControlMap10, VE)
+
+plot1 <- ggplot(fig3DataBControlMap10, aes(x=pos, y=lod)) + geom_line(size=1) + geom_hline(yintercept=thresholdControl10, colour = "gray", linetype="dashed") + facet_grid(.~chr) + ggtitle(paste0("10th quantile of time of flight under control conditions\nn=", nrow(fig3DataBControlMap10), " RIAILs")) + xlab("Position") + ylab("LOD")
+
+plot1 + geom_point(data=VE, aes(x=pos, y=1.05*max(fig3DataBControlMap10$lod)), shape=25, size = 3, fill="red", colour="red") + geom_text(VE, aes(x=pos, y=1.09*max(fig3DataBControlMap10$lod), label=paste0(round(100*VE, 0), "%")), size = 3) + geom_segment(data=conf, aes(x=min(pos), xend=max(pos), y=0, yend=0), colour="red", size=1.5)
+
+
+VE <- getPeaks(fig3DataBControlRaw25, fig3DataBControlMap25, thresholdControl25)
+
+conf <- confint(fig3DataBControlMap25, VE)
+
+plot2 <- ggplot(fig3DataBControlMap25, aes(x=pos, y=lod)) + geom_line(size=1) + geom_hline(yintercept=thresholdControl25, colour = "gray", linetype="dashed") + facet_grid(.~chr) + ggtitle(paste0("25th quantile of time of flight under control conditions\nn=", nrow(fig3DataBControlMap25), " RIAILs")) + xlab("Position") + ylab("LOD")
+
+plot2 + geom_point(data=VE, aes(x=pos, y=1.05*max(fig3DataBControlMap25$lod)), shape=25, size = 3, fill="red", colour="red") + geom_text(data=getPeaks(fig3DataBControlRaw25, fig3DataBControlMap25, thresholdControl25), aes(x=pos, y=1.09*max(fig3DataBControlMap25$lod), label=paste0(round(100*VE, 0), "%")), size = 3) + geom_segment(data=conf, aes(x=min, xend=max, y=0, yend=0), colour="red", size=1.5)
+
+
+
+VE <- getPeaks(fig3DataBControlRaw50, fig3DataBControlMap50, thresholdControl50)
+
+conf <- confint(fig3DataBControlMap50, VE)
+
+plot3 <- ggplot(fig3DataBControlMap50, aes(x=pos, y=lod)) + geom_line(size=1) + geom_hline(yintercept=thresholdControl50, colour = "gray", linetype="dashed") + facet_grid(.~chr) + ggtitle(paste0("50th quantile of time of flight under control conditions\nn=", nrow(fig3DataBControlMap50), " RIAILs")) + xlab("Position") + ylab("LOD")
+
+plot3 + geom_point(data=VE, aes(x=pos, y=1.05*max(fig3DataBControlMap50$lod)), shape=25, size = 3, fill="red", colour="red") + geom_text(data=getPeaks(fig3DataBControlRaw50, fig3DataBControlMap50, thresholdControl50), aes(x=pos, y=1.09*max(fig3DataBControlMap50$lod), label=paste0(round(100*VE, 0), "%")), size = 3)
+
+ggplot(fig3DataBControlMap75, aes(x=pos, y=lod)) + geom_line(size=1) + geom_hline(yintercept=thresholdControl75, colour = "gray", linetype="dashed") + facet_grid(.~chr) + ggtitle(paste0("75th quantile of time of flight under control conditions\nn=", nrow(fig3DataBControlMap75), " RIAILs")) + xlab("Position") + ylab("LOD") + geom_point(data=VE, aes(x=pos, y=1.05*max(fig3DataBControlMap75$lod)), shape=25, size = 3, fill="red", colour="red") + geom_text(data=getPeaks(fig3DataBControlRaw75, fig3DataBControlMap75, thresholdControl75), aes(x=pos, y=1.09*max(fig3DataBControlMap75$lod), label=paste0(round(100*VE, 0), "%")), size = 3)
+
+ggplot(fig3DataBControlMap90, aes(x=pos, y=lod)) + geom_line(size=1) + geom_hline(yintercept=thresholdControl90, colour = "gray", linetype="dashed") + facet_grid(.~chr) + ggtitle(paste0("90th quantile of time of flight under control conditions\nn=", nrow(fig3DataBControlMap90), " RIAILs")) + xlab("Position") + ylab("LOD") + geom_point(data=VE, aes(x=pos, y=1.05*max(fig3DataBControlMap90$lod)), shape=25, size = 3, fill="red", colour="red") + geom_text(data=getPeaks(fig3DataBControlRaw90, fig3DataBControlMap90, thresholdControl90), aes(x=pos, y=1.09*max(fig3DataBControlMap90$lod), label=paste0(round(100*VE, 0), "%")), size = 3)
+
+
+
+
+
+
+
+
+
+## Figure 4A
+# Do we want to exclude NA columns, rows (with infinites?)
+library(gplots)
+fig4DataAControl <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv") %>% filter(!is.na(strain), drug=="control") %>% select(-(1:10), -contains("resid"), -contains("react"))
+fig4DataAPQ <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv") %>% filter(!is.na(strain), drug=="paraquat") %>% select(-(1:10), -contains("resid"), -contains("react"))
+fig4DataAControl <- as.matrix(cor(fig4DataAControl)[apply(cor(fig4DataAControl), 1, function(x){sum(is.na(x)) < (ncol(cor(fig4DataAControl))-1)}), apply(cor(fig4DataAControl), 2, function(x){sum(is.na(x)) < (nrow(cor(fig4DataAControl))-1)})])
+fig4DataAPQ <- as.matrix(fig4DataAPQ[apply(fig4DataAPQ, 1, function(x){sum(is.na(x)) < (ncol(fig4DataAPQ))}), apply(fig4DataAPQ, 2, function(x){sum(is.na(x)) < (nrow(fig4DataAPQ))})])
+fig4DataAPQ <- as.matrix(cor(fig4DataAPQ)[apply(cor(fig4DataAPQ), 1, function(x){sum(is.na(x)) < (ncol(cor(fig4DataAPQ))-1)}), apply(cor(fig4DataAPQ), 2, function(x){sum(is.na(x)) < (nrow(cor(fig4DataAPQ))-1)})])
+heatmap.2(fig4DataAControl)
+heatmap.2(fig4DataAPQ)
+
+
