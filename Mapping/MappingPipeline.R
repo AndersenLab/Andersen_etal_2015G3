@@ -6,14 +6,18 @@ library(stringr)
 library(ggplot2)
 library(reshape2)
 
+# Set loadThreshold. If set to TRUE, the threshold will be loaded from the saved files. 
+# Generating the FDR takes a couple of hours (if set to FALSE).
 
+loadThreshold <- TRUE
 
 # Source the functions
+
 source("Mapping/LinkageMappingFunctions.R")
 
 # Set your phenotype data file here
 
-pheno <- read.csv("~/Dropbox/HTA/Results/ProcessedData/RIAILs0_complete_simple.csv")
+pheno <- read.csv("Data/MappingPhenotypes.csv")
 
 # Remove wash wells (wells where the strain is NA)
 reduced.pheno <- pheno[!is.na(pheno$strain),]
@@ -87,17 +91,19 @@ chr.mindex.offset = sapply(mindex.split, min)-1
 LODS.01       = get.LOD.by.COR(n.pheno, pdata.01s, gdata, doGPU=F)
 LODS.01s      = LODmatrix.2.scanone(LODS.01, N2xCB4856.cross)
 
-load("Mapping/markers.Rda")
-LODS.01s$pos <- sapply(rownames(LODS.01s), function(x){markers[markers$SNP==x, "WS185.pos"]})
-
-# peaklist.01   = getChrPeaks(mindex.split, chr.mindex.offset, LODS.01)
+load("Mapping/markers244.Rda")
+LODS.01s$pos <- sapply(rownames(LODS.01s), function(x){markers[markers$SNP==x, "WS244.pos"]})
 
 # Get the false discovery rate (FDR) for all traits and save immediately (this step can take several hours)
-set.seed(0)
-LODS.01.FDR   = getPeakFDR(peaklist.01$chr.peaks.lod, pdata.01s, gdata, 1000, doGPU=F)
-save(LODS.01.FDR, file="Mapping/FDR.Rda")
+# or load in the saved FDR data
 
-load("Mapping/FDR.Rda")
+if(!loadThreshold){
+    set.seed(0)
+    LODS.01.FDR   = getPeakFDR(peaklist.01$chr.peaks.lod, pdata.01s, gdata, 1000, doGPU=F)
+    save(LODS.01.FDR, file="Mapping/FDR.Rda")
+} else {
+    load("Mapping/FDR.Rda")
+}
 
 # Get singular LOD threshold (first infinite occurance in LODs )
 
@@ -161,6 +167,8 @@ colnames(meltLods) <- c("SNP", "chr", "pos", "trait", "LOD")
 
 finalLods <- merge(meltLods, peakFit.df, by=c("trait", "SNP"), all.x=TRUE)
 
+write.csv(finalLods, file="Mapping/MappingResults.csv", row.names=FALSE)
+
 h2.set=list()
 for(i in 1:ncol(pdata.01s)){
     trait=i
@@ -183,22 +191,33 @@ mean(sapply(h2.set, function(x){x$rr.all.sigma[2]}))
 mean(sapply(h2.set, function(x){x$rr.all.se[1]}))
 mean(sapply(h2.set, function(x){x$rr.all.se[2]}))
 
-for(i in unique(as.character(peakFit.df$trait))){
+for(i in unique(as.character(finalLods$trait))){
     print(i)
     data <- finalLods[as.character(finalLods$trait)==i,]
     peaksDF <- finalLods[!is.na(finalLods$var.exp) & as.character(finalLods$trait)==i,]
     title <- i
-    fileName = paste0("~/LinkagePlots/", gsub("\\.", "-", title), "_map.pdf")
-    plot = ggplot(data) +
-        geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-        facet_grid(.~chr) +
-        xlab("Position (Mb)") +
-        ylab("LOD") +
-        ggtitle(title) +
-        geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-        geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
-        geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
-        geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +
-        geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%"))) 
+    fileName = paste0("Mapping/Maps/", gsub("\\.", "-", title), "_map.pdf")
+    if(nrow(peaksDF)==0){
+        plot = ggplot(data) +
+            geom_line(aes(x=pos/1e6, y=LOD), size=1) +
+            facet_grid(.~chr) +
+            xlab("Position (Mb)") +
+            ylab("LOD") +
+            ggtitle(title) +
+            geom_hline(yintercept=2.97, colour="red", linetype="dashed")
+    } else {
+        plot = ggplot(data) +
+            geom_line(aes(x=pos/1e6, y=LOD), size=1) +
+            facet_grid(.~chr) +
+            xlab("Position (Mb)") +
+            ylab("LOD") +
+            ggtitle(title) +
+            geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+            geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
+            geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
+            geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +
+            geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%")))
+    }
+    
     try(ggsave(plot = plot, filename = fileName, width = 11, height = 4.5))
 }
