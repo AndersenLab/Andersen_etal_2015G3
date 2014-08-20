@@ -48,6 +48,8 @@ if(generateReports){
 
 rawScoreData <- data.frame(do.call(rbind, lapply(scoreList, function(x){data.frame(cbind(info(x,2), readPlate_worms(x, 60, 2000), step="score"))}))) %>% filter(drug != "missing")
 
+save(rawScoreData, file="Data/RawScoreData.Rda")
+
 # Get the strain data
 
 strainFiles <- do.call(rbind, lapply(lapply(directories,
