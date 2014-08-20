@@ -14,12 +14,12 @@
 # Figure 4b: Mapping of norm.n in control conditions. Line should be weight 1. X-axis is physical position, free_x on faceting by chromosome, y-axis is LOD score, peaks are shown as upside down red triangles -----DONE-----
 # 
 # I'm imagining a and b will be on top, c and d in middle, and e and f on bottom for a nearly full page figure.
-# Figure 5a: Histogram of median TOF in control conditions
-# Figure 5b: Map of median TOF
-# Figure 5c: Histogram of median EXT in control conditions
-# Figure 5d: Map of median EXT
-# Figure 5e: Histogram of median norm.EXT in control conditions
-# Figure 5f: Map of median norm.EXT
+# Figure 5a: Histogram of median TOF in control conditions -----DONE-----
+# Figure 5b: Map of median TOF -----DONE-----
+# Figure 5c: Histogram of median EXT in control conditions -----DONE-----
+# Figure 5d: Map of median EXT -----DONE-----
+# Figure 5e: Histogram of median norm.EXT in control conditions -----DONE-----
+# Figure 5f: Map of median norm.EXT -----DONE-----
 # 
 # Here is our cool figure as discussed before. Each quantile or IQR or trait will be its own color on the central 96-well trait array. 
 # Figure 6a: 96-well layout of median norm.EXT histograms with color lines and ranges
@@ -68,16 +68,8 @@ ggplot(fig4DataBControlMap) +
     ggtitle("Lifetime Fecundity in Control Conditions") +
     geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
     geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-#     geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
-#     geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%")))
-
-
-
-
-
-
+    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
+    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")))
 
 ## Figure 5
 fig5Data <- read.csv("Data/MappingPhenotypes.csv")
@@ -103,10 +95,8 @@ ggplot(fig5DataBControlMap) +
     ggtitle("Median Time of Flight in Control Conditions") +
     geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
     geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    #     geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
-    #     geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
+    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
+    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
 
 
 # C
@@ -130,23 +120,75 @@ ggplot(fig5DataDControlMap) +
     ggtitle("Median Extinction in Control Conditions") +
     geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
     geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    #     geom_vline(data=peaksDF, aes(xintercept=CI.L.pos/1e6), colour="blue", size=1, alpha=.5) +
-    #     geom_vline(data=peaksDF, aes(xintercept=CI.R.pos/1e6), colour="blue", size=1, alpha=.5) +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = 1.15*LOD), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = 1.22*LOD, label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
+    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
+    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
 
 
 # E
 ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.norm.EXT)) + geom_bar() + theme_bw() + presentation + ggtitle("Distribution of Median Normalized Extinction Values\nin Control Conditions") + xlab("Median Normalized Extinction") + ylab("Count")
 
 # F
+fig5DataFControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.median.norm.EXT")
+fig5DataFControlMap$chr <- ifelse(fig5DataFControlMap$chr==1, "I",
+                                  ifelse(fig5DataFControlMap$chr==2, "II",
+                                         ifelse(fig5DataFControlMap$chr==3, "III",
+                                                ifelse(fig5DataFControlMap$chr==4, "IV",
+                                                       ifelse(fig5DataFControlMap$chr==5, "V", "X")))))
+peaksDF <- fig5DataFControlMap[!is.na(fig5DataFControlMap$var.exp) & as.character(fig5DataFControlMap$trait)=="control.median.norm.EXT",]
+ggplot(fig5DataFControlMap) +
+    theme_bw() +
+    presentation +
+    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
+    facet_grid(.~chr, scales="free_x") +
+    xlab("Position (Mb)") +
+    ylab("LOD") +
+    ggtitle("Median Normalized Extinction in Control Conditions") +
+    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
+    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
 
 
 
 
 
 
+## Figure 6
+load("Data/RawScoreData.Rda")
+summarizedScoreData <- read.csv("Data/ProcessedPhenotypes.csv") %>% select(assay, plate, row, col, strain)
+histsData <- rawScoreData %>%
+    filter(drug=="control") %>%
+    select(assay, plate, row, col, norm.EXT) %>%
+    filter(as.numeric(as.character(col)) %in% c(1, 5, 9))
+histsData$strain <- sapply(1:nrow(histsData), function(i){
+    print(i)
+    as.character(summarizedScoreData[summarizedScoreData$assay==histsData$assay[i] & as.numeric(as.character(summarizedScoreData$plate))==as.numeric(as.character(histsData$plate[i])) & summarizedScoreData$row==histsData$row[i] & summarizedScoreData$col==histsData$col[i] , "strain"])
+})
 
+histsData2 <- histsData[sapply(1:nrow(histsData), function(x)as.numeric(strsplit(histsData$strain[x], "X")[[1]][2]) > 239),]
+strains <- data.frame(table(histsData2$strain)) %>% 
+    arrange(desc(Freq)) %>% .[12:24, 1] %>%
+    as.character(.)
+histsData3 <- histsData2[histsData2$strain %in% strains,]
+quantileData <- histsData3 %>%
+    group_by(strain) %>%
+    summarize(q10=quantile(norm.EXT, probs=.10),
+           q25=quantile(norm.EXT, probs=.25),
+           q50=quantile(norm.EXT, probs=.50),
+           mean=mean(norm.EXT),
+           q75=quantile(norm.EXT, probs=.75),
+           q90=quantile(norm.EXT, probs=.90))
+    
+ggplot(histsData3, aes(x = norm.EXT)) +
+    theme_bw() +
+    geom_bar() +
+    facet_grid(.~strain) +
+    geom_vline(quantileData, aes(xintercept=q10), colour = "red") +
+    geom_vline(quantileData, aes(xintercept=q25), colour = "orange") +
+    geom_vline(quantileData, aes(xintercept=q50), colour = "yellow") +
+    geom_vline(quantileData, aes(xintercept=mean), colour = "green") +
+    geom_vline(quantileData, aes(xintercept=q75), colour = "blue") +
+    geom_vline(quantileData, aes(xintercept=q90), colour = "purple")
 
 
 
