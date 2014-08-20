@@ -167,7 +167,7 @@ histsData$strain <- sapply(1:nrow(histsData), function(i){
 
 histsData2 <- histsData[sapply(1:nrow(histsData), function(x)as.numeric(strsplit(histsData$strain[x], "X")[[1]][2]) > 239),]
 strains <- data.frame(table(histsData2$strain)) %>% 
-    arrange(desc(Freq)) %>% .[12:24, 1] %>%
+    arrange(desc(Freq)) %>% .[12:23, 1] %>%
     as.character(.)
 histsData3 <- histsData2[histsData2$strain %in% strains,]
 quantileData <- histsData3 %>%
@@ -181,14 +181,17 @@ quantileData <- histsData3 %>%
     
 ggplot(histsData3, aes(x = norm.EXT)) +
     theme_bw() +
+    presentation +
     geom_bar() +
-    facet_grid(.~strain) +
-    geom_vline(quantileData, aes(xintercept=q10), colour = "red") +
-    geom_vline(quantileData, aes(xintercept=q25), colour = "orange") +
-    geom_vline(quantileData, aes(xintercept=q50), colour = "yellow") +
-    geom_vline(quantileData, aes(xintercept=mean), colour = "green") +
-    geom_vline(quantileData, aes(xintercept=q75), colour = "blue") +
-    geom_vline(quantileData, aes(xintercept=q90), colour = "purple")
+    facet_wrap(~strain, ncol=6) +
+    geom_vline(data=quantileData, aes(xintercept=q10), colour = "red") +
+    geom_vline(data=quantileData, aes(xintercept=q25), colour = "orange") +
+    geom_vline(data=quantileData, aes(xintercept=q50), colour = "yellow") +
+    geom_vline(data=quantileData, aes(xintercept=mean), colour = "green") +
+    geom_vline(data=quantileData, aes(xintercept=q75), colour = "blue") +
+    geom_vline(data=quantileData, aes(xintercept=q90), colour = "purple") +
+    xlab("Normalized Extinction Value") +
+    ylab("Count")
 
 
 
