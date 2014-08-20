@@ -1,0 +1,28 @@
+# RIAILs 1 Pruning
+
+Load up dplyr for pruning and read in the data.
+
+```{r}
+library(dplyr)
+data <- read.csv("Data/ProcessedPhenotypes.csv")
+```
+
+Filter out every well where n is not between 5 and 1000 so that variance values are accurate and biologically impossible populations are not mapped. Also filter out any wells where the normalized n is greater than 350.
+
+```{r}
+data1 <- filter(data, n > 5, n < 1000, norm.n < 350)
+```
+
+Prune out all yellow traits, as there are many NAs and 0s
+
+```{r}
+data2 <- select(data1, -contains("yellow"))
+```
+
+Save the final data frame for mapping
+
+```{r}
+write.csv(data2, file="Data/MappingPhenotypes.csv", row.names=FALSE)
+```
+
+
