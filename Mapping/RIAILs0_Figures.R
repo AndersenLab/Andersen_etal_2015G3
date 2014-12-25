@@ -30,7 +30,7 @@
 # Figure 8a: histogram of median norm.EXT in control (black) and paraquat (red) conditions
 # Figure 8b: Map of paraquat trait that maps
 # 
-# Figure 9: NIL results (if we still have overlap with real QTL)
+# Figure 9: NIL results (if we still have overlap with real QTL) 20141215 - No, we don't unfortunately
 # 
 # Table 1: QX1430 vs. N2 for genetic incompatibility
 # 
@@ -43,153 +43,303 @@
 library(dplyr) #Version 0.2
 library(ggplot2)
 
-load("PhenotypeProcessing/PresentationStyle.RData")
+## Figure 1, Allele frequencies
 
-## Figure 4A
-fig4DataA <- read.csv("Data/MappingPhenotypes.csv")
+#Plot for allele frequency figure
+
+load("~/Dropbox/HTA + new RIAIL paper/Figures/Figure_AlleleFreq/GenotypeTable_afterImputation.RData")
+load("~/Dropbox/HTA + new RIAIL paper/Figures/Figure_AlleleFreq/markers244.Rda")
+
+#convert chromosomes to roman numerals
+gt2$chr <- factor(gt2$chr, labels = c(as.character(as.roman(c(1:5, 10)))))
+
+#convert positions to WS.235 positions
+gt2$pos <- as.numeric(markers$WS244.pos[match(x=rownames(gt2), markers$SNP)])
+
+ggplot(data=gt2) + aes(x=pos/1000000, y=BB) + geom_line(size=0.5) +
+  geom_hline(yintercept=0.5, color="red", linetype=2) +
+  facet_grid(.~chr, space="free_x", scale="free_x") +
+  xlab("Genomic position (Mb)") + ylab("Frequency of the Bristol allele") + theme_bw() +
+  theme(axis.text.x = element_text(size=0, face="bold", color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_AlleleFreq/AF_pts.tiff", height=3, width=6, units="in", dpi=300)
+
+## Figure 2A, Power calculations and B, variance explained
+
+#A
+library(qtlDesign)
+library(qtl)
+library(pwr)
+
+dd = seq(0.01,100,.01)
+#n359 = power.t.test(n=180, delta=dd, sig.level=.05/750)$power
+n359 = pwr.t.test(n=300, d=dd, sig.level=.05/730)$power #sig corrected for 1460 SNPs
+pvar= prop.var('ri', dd/2,1)
+df <- data.frame(pvar, n359)
+
+ggplot(data=df) + aes(x=pvar*100, y=n359) + geom_line(size=0.5) + xlim(0, 15) +
+  geom_hline(yintercept=0.8, color="red", linetype=2) + 
+  xlab("Percent of phenotypic variance explained") + ylab("Statistical power") + theme_bw() +
+  theme(axis.text.x = element_text(size=12, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_powercalcs/power.tiff", height=3, width=4.5, units="in", dpi=300)
+
+#B 
+
+fig2DataB <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(!is.na(var.exp))
+fig2DataB$chr <- ifelse(fig2DataB$chr==1, "I",
+                                  ifelse(fig2DataB$chr==2, "II",
+                                         ifelse(fig2DataB$chr==3, "III",
+                                                ifelse(fig2DataB$chr==4, "IV",
+                                                       ifelse(fig2DataB$chr==5, "V", "X")))))
+
+ggplot(data=fig2DataB) + aes(x=var.exp) + geom_histogram() +
+  geom_vline(xintercept=0.04, color="red", linetype=2) +
+  labs(x="Variance explained", y="Count") +
+  theme(axis.text.x = element_text(size=12, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_powercalcs/VE.tiff", height=4.5, width=4.5, units="in", dpi=300)
+
+
+
+## Figure 3, overview of HTA assay, made separately
+
+## Figure 4, Fecundity in control conditions and mapping
+# A
+fig4DataA <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPhenotypes.csv")
 nData <- fig4DataA %>% filter(drug=="control") %>% select(strain, n) %>% mutate(group=ifelse(strain=="N2", "N2", ifelse(strain=="CB4856", "CB4856", "RIAILs")))
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_broodsize/FecundityBoxplot.png", height=3, width=5)
+ggplot(nData, aes(x=factor(group), y=n)) + 
+  geom_boxplot(aes(fill=factor(group))) + 
+  theme_bw() + 
+  labs(x="", y="Num. of offspring", title="") +
+  theme(legend.position="none") + 
+  scale_x_discrete(limits=c("N2", "CB4856", "RIAILs"), labels=c("Bristol", "CB4856", "RIAILs")) + 
+  scale_fill_manual(values = c("N2" = "orange","CB4856" = "blue","RIAILs" = "gray")) + 
+  theme(axis.text.x = element_text(size=12, face="bold", color="black"),
+        axis.text.y = element_text(size=12, face="bold", color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
 
-ggplot(nData, aes(x=factor(group), y=n)) + geom_boxplot(aes(fill=factor(group))) + theme_bw() + xlab(NULL) + ylab("Number of offspring") + theme(legend.position="none") + ggtitle("Lifetime Fecundity") + scale_x_discrete(limits=c("N2", "CB4856", "RIAILs"), labels=c("Bristol", "Hawaii", "RIAILs")) + scale_fill_manual(values = c("N2" = "blue","CB4856" = "orange","RIAILs" = "gray")) + presentation
-
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_broodsize/FecundityMap.png", height=3, width=5)
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_broodsize/FecundityBoxplot.tiff", height=3, width=3, units="in", dpi=300)
 
 ## Figure 4B
-fig4DataBControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.n")
+fig4DataBControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.n")
 fig4DataBControlMap$chr <- ifelse(fig4DataBControlMap$chr==1, "I",
                                   ifelse(fig4DataBControlMap$chr==2, "II",
                                          ifelse(fig4DataBControlMap$chr==3, "III",
                                                 ifelse(fig4DataBControlMap$chr==4, "IV",
                                                        ifelse(fig4DataBControlMap$chr==5, "V", "X")))))
 peaksDF <- fig4DataBControlMap[!is.na(fig4DataBControlMap$var.exp) & as.character(fig4DataBControlMap$trait)=="control.n",]
-ggplot(fig4DataBControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("Lifetime Fecundity in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")))
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_broodsize/FecundityMap.png", height=5, width=10)
+ggplot(fig4DataBControlMap) +
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
+  geom_text(data=peaksDF, size=3, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%"))) +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_broodsize/FecundityMap.tiff", height=3, width=4.5, units="in", dpi=300)
 
 ## Figure 5
-fig5Data <- read.csv("Data/MappingPhenotypes.csv")
+fig5Data <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPhenotypes.csv")
 
 # A
-ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.TOF)) + geom_bar() + theme_bw() + presentation + ggtitle("Distribution of Median Time of Flight Values\nin Control Conditions") + xlab("Median Time of Flight") + ylab("Count")
+ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.TOF)) + 
+  geom_histogram() + 
+  labs(x="Median Time of Flight (µm)", y="Count") +
+  theme_bw() + 
+  theme(axis.text.x = element_text(size=12, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/TOFHist.png", height=5, width=10)
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/TOFHist.tiff", height=3, width=3, units="in", dpi=300)
 
 # B
-fig5DataBControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.median.TOF")
+fig5DataBControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.median.TOF")
 fig5DataBControlMap$chr <- ifelse(fig5DataBControlMap$chr==1, "I",
                                   ifelse(fig5DataBControlMap$chr==2, "II",
                                          ifelse(fig5DataBControlMap$chr==3, "III",
                                                 ifelse(fig5DataBControlMap$chr==4, "IV",
                                                        ifelse(fig5DataBControlMap$chr==5, "V", "X")))))
 peaksDF <- fig5DataBControlMap[!is.na(fig5DataBControlMap$var.exp) & as.character(fig5DataBControlMap$trait)=="control.median.TOF",]
-ggplot(fig5DataBControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("Median Time of Flight in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/TOFMap.png", height=5, width=10)
+ggplot(fig5DataBControlMap) +
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_text(data=peaksDF, size= 3, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
+  facet_grid(.~chr, scales="free_x") +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/TOFMap.tiff", height=3, width=4.5, units="in", dpi=300)
 
 
 # C
-ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.EXT)) + geom_bar() + theme_bw() + presentation + ggtitle("Distribution of Median Extinction Values\nin Control Conditions") + xlab("Median Extinction") + ylab("Count")
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/EXTHist.png", height=5, width=10)
+ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.EXT)) + 
+  geom_histogram() + 
+  labs(x="Median Extinction", y="Count") +
+  theme_bw() + 
+  theme(axis.text.x = element_text(size=12, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/EXTHist.tiff", height=3, width=3, units="in", dpi=300)
 
 # D
-fig5DataDControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.median.EXT")
+fig5DataDControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.median.EXT")
 fig5DataDControlMap$chr <- ifelse(fig5DataDControlMap$chr==1, "I",
                                   ifelse(fig5DataDControlMap$chr==2, "II",
                                          ifelse(fig5DataDControlMap$chr==3, "III",
                                                 ifelse(fig5DataDControlMap$chr==4, "IV",
                                                        ifelse(fig5DataDControlMap$chr==5, "V", "X")))))
 peaksDF <- fig5DataDControlMap[!is.na(fig5DataDControlMap$var.exp) & as.character(fig5DataDControlMap$trait)=="control.median.EXT",]
+
 ggplot(fig5DataDControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("Median Extinction in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_text(data=peaksDF, size= 3, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
+  facet_grid(.~chr, scales="free_x") +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  scale_y_continuous(breaks = c(1:4*2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/EXTMap.png", height=5, width=10)
-
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/EXTMap.tiff", height=3, width=4.5, units="in", dpi=300)
 
 # E
-ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.norm.EXT)) + geom_bar() + theme_bw() + presentation + ggtitle("Distribution of Median Normalized Extinction Values\nin Control Conditions") + xlab("Median Normalized Extinction") + ylab("Count")
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/normEXTHist.png", height=5, width=10)
+ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.norm.EXT)) + 
+  geom_histogram() + 
+  labs(x="Median Normalized Extinction", y="Count") +
+  theme_bw() + 
+  theme(axis.text.x = element_text(size=12, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/normEXTHist.tiff", height=3, width=3, units="in", dpi=300)
 
 # F
-fig5DataFControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.median.norm.EXT")
+fig5DataFControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.median.norm.EXT")
 fig5DataFControlMap$chr <- ifelse(fig5DataFControlMap$chr==1, "I",
                                   ifelse(fig5DataFControlMap$chr==2, "II",
                                          ifelse(fig5DataFControlMap$chr==3, "III",
                                                 ifelse(fig5DataFControlMap$chr==4, "IV",
                                                        ifelse(fig5DataFControlMap$chr==5, "V", "X")))))
 peaksDF <- fig5DataFControlMap[!is.na(fig5DataFControlMap$var.exp) & as.character(fig5DataFControlMap$trait)=="control.median.norm.EXT",]
+
 ggplot(fig5DataFControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("Median Normalized Extinction in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_text(data=peaksDF, size= 3, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
+  facet_grid(.~chr, scales="free_x") +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/normEXTMap.png", height=5, width=10)
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/normEXTMap.tiff", height=3, width=4.5, units="in", dpi=300)
 
+## Figure 6, because this code randomly selects 10 RIAILs to make the histograms. Do not re-run unless you want to redo the Figure.
 
+load("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/RawScoreData.Rda")
 
+summarizedScoreData <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/ProcessedPhenotypes.csv") %>% select(assay, plate, row, col, strain)
 
-## Figure 6
-load("Data/RawScoreData.Rda")
-summarizedScoreData <- read.csv("Data/ProcessedPhenotypes.csv") %>% select(assay, plate, row, col, strain)
 histsData <- rawScoreData %>%
     filter(drug=="control") %>%
     select(assay, plate, row, col, TOF) %>%
     filter(as.numeric(as.character(col)) %in% c(1, 5, 9))
-histsData$strain <- sapply(1:nrow(histsData), function(i){
-    print(i)
-    as.character(summarizedScoreData[summarizedScoreData$assay==histsData$assay[i] & as.numeric(as.character(summarizedScoreData$plate))==as.numeric(as.character(histsData$plate[i])) & summarizedScoreData$row==histsData$row[i] & summarizedScoreData$col==histsData$col[i] , "strain"])
-})
 
-histsData2 <- histsData[sapply(1:nrow(histsData), function(x)as.numeric(strsplit(histsData$strain[x], "X")[[1]][2]) > 239),]
+histsData$assay <- as.character(histsData$assay)
+histsData$plate <- as.integer(histsData$plate)
+histsData$row <- as.character(histsData$row)
+histsData$col <- as.integer(histsData$col)
+
+histsData <- histsData %>% mutate(ind = paste(assay, plate, row, col, sep=""))
+summarizedScoreData <- summarizedScoreData %>% mutate(ind = paste(assay, plate, row, col, sep=""))
+
+histData2 <- merge(histsData, summarizedScoreData, by="ind") %>% select(assay.x, plate.x, row.x, col.x, TOF, strain) %>% 
+  rename(assay = assay.x, plate = plate.x, row = row.x, col = col.x) %>% mutate(ind = as.numeric(str_split_fixed(strain, "QX", 2)[,2])) %>%
+  filter(ind > 239) %>% select(-ind)
 
 set.seed(0)
 
-strains <- data.frame(table(histsData2$strain)) %>% 
-    arrange(desc(Freq)) %>% .[sample(1:338, 12), 1] %>%
+strains <- data.frame(table(histData2$strain)) %>% 
+    arrange(desc(Freq)) %>% .[sample(1:338, 10), 1] %>%
     as.character(.)
-histsData3 <- histsData2[histsData2$strain %in% strains,]
+histsData3 <- histData2[histData2$strain %in% strains,]
 quantileData <- histsData3 %>%
     group_by(strain) %>%
     summarize(q10=quantile(TOF, probs=.10),
@@ -200,188 +350,503 @@ quantileData <- histsData3 %>%
            q90=quantile(TOF, probs=.90))
     
 ggplot(histsData3, aes(x = TOF)) +
-    theme_bw() +
-    presentation +
-    geom_bar() +
-    facet_wrap(~strain, ncol=6) +
-    geom_vline(data=quantileData, aes(xintercept=q10), colour = "red") +
-    geom_vline(data=quantileData, aes(xintercept=q25), colour = "orange") +
-    geom_vline(data=quantileData, aes(xintercept=q50), colour = "yellow") +
-#     geom_vline(data=quantileData, aes(xintercept=mean), colour = "green") +
-    geom_vline(data=quantileData, aes(xintercept=q75), colour = "blue") +
-    geom_vline(data=quantileData, aes(xintercept=q90), colour = "purple") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-    xlab("Time of Flight Value") +
-    ylab("Count")
+  geom_bar() +
+  geom_vline(data=quantileData, aes(xintercept=q10), colour = "red") +
+  geom_vline(data=quantileData, aes(xintercept=q25), colour = "orange") +
+  geom_vline(data=quantileData, aes(xintercept=q50), colour = "yellow") +
+  #     geom_vline(data=quantileData, aes(xintercept=mean), colour = "green") +
+  geom_vline(data=quantileData, aes(xintercept=q75), colour = "blue") +
+  geom_vline(data=quantileData, aes(xintercept=q90), colour = "purple") +
+  facet_wrap(~strain, ncol=5) +
+  xlim(0,750) +
+  labs(x="Length (µm)", y = "Count") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=12, color="black", angle=45, hjust=1),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/distributions.png", height=7, width=10)
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/distributions.tiff", height=3, width=9, units="in", dpi=300)
 
 # B
-fig6DataBControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.q10.TOF")
+fig6DataBControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.q10.TOF")
 fig6DataBControlMap$chr <- ifelse(fig6DataBControlMap$chr==1, "I",
                                   ifelse(fig6DataBControlMap$chr==2, "II",
                                          ifelse(fig6DataBControlMap$chr==3, "III",
                                                 ifelse(fig6DataBControlMap$chr==4, "IV",
                                                        ifelse(fig6DataBControlMap$chr==5, "V", "X")))))
 peaksDF <- fig6DataBControlMap[!is.na(fig6DataBControlMap$var.exp) & as.character(fig6DataBControlMap$trait)=="control.q10.TOF",]
-ggplot(fig6DataBControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("10th Quantile of Time of Flight in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q10Map.png", height=5, width=10)
+ggplot(fig6DataBControlMap) +
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=2) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_text(data=peaksDF, size= 1.5, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
+  facet_grid(.~chr, scales="free_x") +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=10, color="black"),
+        axis.title.x = element_text(size=10, face="bold", color="black"),
+        axis.title.y = element_text(size=10, face="bold", color="black"),
+        strip.text.x = element_text(size=10, face="bold", color="white"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        strip.background = element_rect(fill = "red"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q10Map.tiff", height=2, width=3, units="in", dpi=300)
 
 # C
-fig6DataCControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.q25.TOF")
+fig6DataCControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.q25.TOF")
 fig6DataCControlMap$chr <- ifelse(fig6DataCControlMap$chr==1, "I",
                                   ifelse(fig6DataCControlMap$chr==2, "II",
                                          ifelse(fig6DataCControlMap$chr==3, "III",
                                                 ifelse(fig6DataCControlMap$chr==4, "IV",
                                                        ifelse(fig6DataCControlMap$chr==5, "V", "X")))))
 peaksDF <- fig6DataCControlMap[!is.na(fig6DataCControlMap$var.exp) & as.character(fig6DataCControlMap$trait)=="control.q25.TOF",]
-ggplot(fig6DataCControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("25th Quantile of Time of Flight in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q25Map.png", height=5, width=10)
+ggplot(fig6DataCControlMap) +
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=2) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_text(data=peaksDF, size= 1.5, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
+  facet_grid(.~chr, scales="free_x") +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=10, color="black"),
+        axis.title.x = element_text(size=10, face="bold", color="black"),
+        axis.title.y = element_text(size=10, face="bold", color="black"),
+        strip.text.x = element_text(size=10, face="bold", color="white"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        strip.background = element_rect(fill = "orange"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q25Map.tiff", height=2, width=3, units="in", dpi=300)
 
 # D
-fig6DataDControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.median.TOF")
+fig6DataDControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.median.TOF")
 fig6DataDControlMap$chr <- ifelse(fig6DataDControlMap$chr==1, "I",
                                   ifelse(fig6DataDControlMap$chr==2, "II",
                                          ifelse(fig6DataDControlMap$chr==3, "III",
                                                 ifelse(fig6DataDControlMap$chr==4, "IV",
                                                        ifelse(fig6DataDControlMap$chr==5, "V", "X")))))
 peaksDF <- fig6DataDControlMap[!is.na(fig6DataDControlMap$var.exp) & as.character(fig6DataDControlMap$trait)=="control.median.TOF",]
-ggplot(fig6DataDControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("Median Time of Flight in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/medianMap.png", height=5, width=10)
+ggplot(fig6DataDControlMap) +
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=2) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_text(data=peaksDF, size= 1.5, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
+  facet_grid(.~chr, scales="free_x") +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=10, color="black"),
+        axis.title.x = element_text(size=10, face="bold", color="black"),
+        axis.title.y = element_text(size=10, face="bold", color="black"),
+        strip.text.x = element_text(size=10, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        strip.background = element_rect(fill = "yellow"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/medianMap.tiff", height=2, width=3, units="in", dpi=300)
 
 # E
-fig6DataEControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.q75.TOF")
+fig6DataEControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.q75.TOF")
 fig6DataEControlMap$chr <- ifelse(fig6DataEControlMap$chr==1, "I",
                                   ifelse(fig6DataEControlMap$chr==2, "II",
                                          ifelse(fig6DataEControlMap$chr==3, "III",
                                                 ifelse(fig6DataEControlMap$chr==4, "IV",
                                                        ifelse(fig6DataEControlMap$chr==5, "V", "X")))))
 peaksDF <- fig6DataEControlMap[!is.na(fig6DataEControlMap$var.exp) & as.character(fig6DataEControlMap$trait)=="control.q75.TOF",]
-ggplot(fig6DataEControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("75th Quantile of Time of Flight in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q75Map.png", height=5, width=10)
+ggplot(fig6DataEControlMap) +
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=2) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_text(data=peaksDF, size= 1.5, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
+  facet_grid(.~chr, scales="free_x") +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=10, color="black"),
+        axis.title.x = element_text(size=10, face="bold", color="black"),
+        axis.title.y = element_text(size=10, face="bold", color="black"),
+        strip.text.x = element_text(size=10, face="bold", color="white"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        strip.background = element_rect(fill = "blue"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q75Map.tiff", height=2, width=3, units="in", dpi=300)
 
 # F
-fig6DataFControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.q90.TOF")
+fig6DataFControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.q90.TOF")
 fig6DataFControlMap$chr <- ifelse(fig6DataFControlMap$chr==1, "I",
                                   ifelse(fig6DataFControlMap$chr==2, "II",
                                          ifelse(fig6DataFControlMap$chr==3, "III",
                                                 ifelse(fig6DataFControlMap$chr==4, "IV",
                                                        ifelse(fig6DataFControlMap$chr==5, "V", "X")))))
 peaksDF <- fig6DataFControlMap[!is.na(fig6DataFControlMap$var.exp) & as.character(fig6DataFControlMap$trait)=="control.q90.TOF",]
-ggplot(fig6DataFControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("90th Quantile of Time of Flight in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q90Map.png", height=5, width=10)
+ggplot(fig6DataFControlMap) +
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=2) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_text(data=peaksDF, size= 1.5, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
+  facet_grid(.~chr, scales="free_x") +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=10, color="black"),
+        axis.title.x = element_text(size=10, face="bold", color="black"),
+        axis.title.y = element_text(size=10, face="bold", color="black"),
+        strip.text.x = element_text(size=10, face="bold", color="white"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        strip.background = element_rect(fill = "purple"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q90Map.tiff", height=2, width=3, units="in", dpi=300)
 
 # G
-fig6DataGControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="control.iqr.TOF")
+fig6DataGControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.iqr.TOF")
 fig6DataGControlMap$chr <- ifelse(fig6DataGControlMap$chr==1, "I",
                                   ifelse(fig6DataGControlMap$chr==2, "II",
                                          ifelse(fig6DataGControlMap$chr==3, "III",
                                                 ifelse(fig6DataGControlMap$chr==4, "IV",
                                                        ifelse(fig6DataGControlMap$chr==5, "V", "X")))))
-peaksDF <- fig6DataBControlMap[!is.na(fig6DataBControlMap$var.exp) & as.character(fig6DataBControlMap$trait)=="control.iqr.TOF",]
-ggplot(fig6DataBControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("Interquartile Range of Time of Flight in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
+peaksDF <- fig6DataGControlMap[!is.na(fig6DataGControlMap$var.exp) & as.character(fig6DataGControlMap$trait)=="control.iqr.TOF",]
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/varMap.png", height=5, width=10)
+ggplot(fig6DataGControlMap) +
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=2) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_text(data=peaksDF, size= 1.5, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
+  facet_grid(.~chr, scales="free_x") +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=10, color="black"),
+        axis.title.x = element_text(size=10, face="bold", color="black"),
+        axis.title.y = element_text(size=10, face="bold", color="black"),
+        strip.text.x = element_text(size=10, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/iqrMap.tiff", height=2, width=3, units="in", dpi=300)
+
+## Figure 7
+
+load(proc.pq3, file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_doseresponses/oldpqdose.RData")
+
+ggplot(proc.pq3) + aes(x=conc, y=mean.n, color=strain) + geom_line() +
+  labs(x="Paraquat concentration (µm)", y="Mean num. of offspring") +
+  scale_color_manual(values=c("orange", "blue", "red", "black")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=12, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"),
+        legend.position="none")
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_doseresponses/pqdose_n.tiff", height=3, width=4.5, units="in", dpi=300)
 
 
 
 ## Figure 8
 # A
-load("Data/RawScoreData.Rda")
-ggplot(rawScoreData, aes(x = norm.EXT)) + geom_bar(aes(fill = drug), position="dodge") + scale_fill_manual(values=c("control"="black", "paraquat"="red")) + presentation + xlab("Normalized Extinction Value") + ylab("Count")
+load("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/RawScoreData.Rda")
+summarizedScoreData <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/ProcessedPhenotypes.csv") %>% select(assay, plate, row, col, strain)
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normEXT/normEXThist.png", height=5, width=7)
+pqcomp <- rawScoreData %>%
+  select(assay, plate, drug, row, col, norm.EXT)
+
+pqcomp$assay <- as.character(pqcomp$assay)
+pqcomp$plate <- as.integer(pqcomp$plate)
+pqcomp$row <- as.character(pqcomp$row)
+pqcomp$col <- as.integer(pqcomp$col)
+
+pqcomp2 <- pqcomp %>% mutate(ind = paste(assay, plate, row, col, sep=""))
+summarizedScoreData <- summarizedScoreData %>% mutate(ind = paste(assay, plate, row, col, sep=""))
+
+pqcomp3 <- merge(pqcomp2, summarizedScoreData, by="ind") %>% select(assay.x, plate.x, drug, row.x, col.x, norm.EXT, strain) %>% 
+  rename(assay = assay.x, plate = plate.x, row = row.x, col = col.x) %>% mutate(ind = as.numeric(str_split_fixed(strain, "QX", 2)[,2])) %>%
+  filter(ind > 239) %>% select(-ind)
+
+ggplot(pqcomp3, aes(x = norm.EXT)) + 
+  geom_bar(aes(fill = drug), position="dodge") + 
+  xlab("Normalized Extinction") + ylab("Count") + 
+  scale_fill_manual(values=c("control"="black", "paraquat"="red")) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(size=10, color="black"),
+        axis.text.y = element_text(size=10, color="black"),
+        axis.title.x = element_text(size=10, face="bold", color="black"),
+        axis.title.y = element_text(size=10, face="bold", color="black"),
+        strip.text.x = element_text(size=10, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        legend.position="none",
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normEXTpq/normEXThist.tiff", height=3, width=3, units="in", dpi=300)
 
 # B
-fig8DataBControlMap <- read.csv("Mapping/MappingResults.csv") %>% filter(trait=="paraquat.mean.norm.EXT")
+fig8DataBControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="paraquat.resid.mean.norm.EXT")
 fig8DataBControlMap$chr <- ifelse(fig8DataBControlMap$chr==1, "I",
                                   ifelse(fig8DataBControlMap$chr==2, "II",
                                          ifelse(fig8DataBControlMap$chr==3, "III",
                                                 ifelse(fig8DataBControlMap$chr==4, "IV",
                                                        ifelse(fig8DataBControlMap$chr==5, "V", "X")))))
-peaksDF <- fig8DataBControlMap[!is.na(fig8DataBControlMap$var.exp) & as.character(fig8DataBControlMap$trait)=="paraquat.mean.norm.EXT",]
-ggplot(fig8DataBControlMap) +
-    theme_bw() +
-    presentation +
-    geom_line(aes(x=pos/1e6, y=LOD), size=1) +
-    facet_grid(.~chr, scales="free_x") +
-    xlab("Position (Mb)") +
-    ylab("LOD") +
-    ggtitle("Mean Normalized Extinction in Control Conditions") +
-    geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
-    geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
-    geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
-    geom_text(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.25*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold")
+peaksDF <- fig8DataBControlMap[!is.na(fig8DataBControlMap$var.exp) & as.character(fig8DataBControlMap$trait)=="paraquat.resid.mean.norm.EXT",]
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normEXT/PQnormEXTmap.png", height=5, width=10)
+ggplot(fig8DataBControlMap) +
+  geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
+  geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
+  geom_hline(yintercept=2.97, colour="red", linetype="dashed") +
+  geom_point(data=peaksDF, aes(x=pos/1e6, y = LOD+((1.1*max(LOD)-max(LOD)))), fill="red", shape=25, size=4) +
+  geom_text(data=peaksDF, size=3, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%"))) +
+  labs(x="Position (Mb)", y="LOD") +
+  facet_grid(.~chr, scales="free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normEXTpq/PQresidnormEXTmap.tiff", height=3, width=4.5, units="in", dpi=300)
+
+# C
+
+fig8DataC <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPhenotypes.csv")
+
+#Reduce to QX240 and greater
+
+pq.n <- fig8DataC %>% mutate(ind = as.numeric(str_split_fixed(strain, "QX", 2)[,2])) %>% filter(ind > 239) %>% select(-ind) %>%
+  select(drug, strain, norm.n)
+
+ggplot(pq.n, aes(x = norm.n)) + 
+  geom_bar(aes(fill = drug), position="dodge") + 
+  xlab("Normalized Fecundity") + ylab("Count") + 
+  scale_fill_manual(values=c("control"="black", "paraquat"="red")) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(size=10, color="black"),
+        axis.text.y = element_text(size=10, color="black"),
+        axis.title.x = element_text(size=10, face="bold", color="black"),
+        axis.title.y = element_text(size=10, face="bold", color="black"),
+        strip.text.x = element_text(size=10, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        legend.position="none",
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normEXTpq/normnhist.tiff", height=3, width=3, units="in", dpi=300)
+
+# D
+
+fig8DataDControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="paraquat.norm.n")
+fig8DataDControlMap$chr <- ifelse(fig8DataDControlMap$chr==1, "I",
+                                  ifelse(fig8DataDControlMap$chr==2, "II",
+                                         ifelse(fig8DataDControlMap$chr==3, "III",
+                                                ifelse(fig8DataDControlMap$chr==4, "IV",
+                                                       ifelse(fig8DataDControlMap$chr==5, "V", "X")))))
+peaksDF <- fig8DataDControlMap[!is.na(fig8DataDControlMap$var.exp) & as.character(fig8DataDControlMap$trait)=="paraquat.norm.n",]
+
+#No significant mappings, so I will not have a C and D in the paper.
+
+## Table 1, all QTL mapping results
+
+tabdf <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(!is.na(var.exp))
+tabdf$chr <- ifelse(tabdf$chr==1, "I",
+                        ifelse(tabdf$chr==2, "II",
+                               ifelse(tabdf$chr==3, "III",
+                                      ifelse(tabdf$chr==4, "IV",
+                                             ifelse(tabdf$chr==5, "V", "X")))))
+
+tabdf2 <- tabdf %>% 
+  mutate(condition = str_split_fixed(trait, pattern="\\.", n=2)[,1]) %>% 
+  mutate(trait2 = str_split_fixed(trait, pattern="\\.", n=2)[,2]) %>%
+  select(-trait) %>% rename(trait = trait2) %>%
+  arrange(condition, trait, chr)
+                           
+write.table(tabdf2, file="~/Dropbox/HTA + new RIAIL paper/Tables/allQTL.csv", sep=",", quote=F, row.names=F, col.names=T)
+
+## Table, all phenotype data for RIAILs
+
+tab2 <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPhenotypes.csv") %>%
+  select(date:norm.n)
+
+write.table(tab2, file="~/Dropbox/HTA + new RIAIL paper/Tables/allpheno.csv", sep=",", quote=F, row.names=F, col.names=T)
+
+## Table, all genotype data for new RIAILs, QX240-QX539
+
+genos <- data.frame(fread("~/Dropbox/AndersenLab/LabFolders/Stefan/GWAS/NIL_generation/N2xCB4856_598RIAILs_gen.csv",
+                          header = T))
+
+genos2 <- do.call(cbind, lapply(genos[,4:ncol(genos)], function(x){
+  temp <- data.frame(gen = x)
+  temp <- mutate(temp, num = ifelse(gen =="AA",1,
+                                    ifelse(gen=="AB",0,NA)))
+  temp <- select(temp, -gen)
+}))
+
+genos3 <- data.frame(genos[,1:3], genos2)
+colnames(genos3) <- c("id","chr","cM", seq(1,ncol(genos3)-3))
+
+genos5 <- genos3 %>%
+  gather(key=strain,value=geno,-id  ,-chr,  -cM) %>% 
+  mutate(numst = as.numeric(as.character(strain))) %>%
+  filter(numst > 239) %>%
+  select(-numst) %>%
+  spread(key=strain, value=geno) %>%
+  arrange(chr, cM)
+
+colnames(genos5) <- c("id", "chr", "cM", paste0("QX", seq(from=240, to=598)))
+
+write.table(genos5, file="~/Dropbox/HTA + new RIAIL paper/Tables/allnewgeno.csv", sep=",", quote=F, row.names=F, col.names=T)
+
+## Figure, all new RIAIL genotypes
+
+load(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_newRIAILgenotypes/geno_long.RData")
+
+ggplot(mgen)+
+  aes(x = ind, y= strain, color = ifelse(geno=="0","CB4856",
+                                         ifelse(geno=="1","N2","2")), 
+      fill = ifelse(geno=="0","CB4856",
+                    ifelse(geno=="1","N2","2"))) +
+  scale_color_manual(values=c("CB4856"="blue","N2"="orange","2"="gray"), name = "Genotype")+
+  scale_fill_manual(values=c("CB4856"="blue","N2"="orange","2"="gray"), name = "Genotype")+
+  geom_tile(size=1) +
+  labs(y = "RIAIL", x = "Marker") +
+  theme(axis.text.x = element_text(size=12, color="black"),
+        axis.text.y = element_text(size=0, face="bold", color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        legend.position="none")
+ 
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_newRIAILgenotypes/genopic.tiff", height=6.5, width=6.5, units="in", dpi=300)
+
+## Figure , incompatibility of QX1430
+
+load("~/Dropbox/HTA + new RIAIL paper/Tables/procincompat.RData")
+
+ggplot(proc) + aes(x=strain, y=m.emb) + 
+  geom_bar(position="dodge", stat="identity", fill="darkgray") + 
+  geom_errorbar(aes(ymax=m.emb+sd.emb, ymin=m.emb-sd.emb), width=0.35, size=1) +
+  labs(x="", y="Mean embryonic lethality") +
+  scale_y_continuous(breaks=c(0:5)/10) +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=10, color="black", face="bold", angle=45, vjust=0.65),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_QX1430Incomp/incomp.tiff", height=5, width=6, units="in", dpi=300)
+
+## Figure X, all linkage mapping results for control and paraquat
+
+tabdf <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(!is.na(var.exp))
+tabdf$chr <- ifelse(tabdf$chr==1, "I",
+                    ifelse(tabdf$chr==2, "II",
+                           ifelse(tabdf$chr==3, "III",
+                                  ifelse(tabdf$chr==4, "IV",
+                                         ifelse(tabdf$chr==5, "V", "X")))))
+
+tabdf2 <- tabdf %>% 
+  mutate(condition = str_split_fixed(trait, pattern="\\.", n=2)[,1]) %>% 
+  mutate(trait2 = str_split_fixed(trait, pattern="\\.", n=2)[,2]) %>%
+  select(-trait) %>% rename(trait = trait2) %>%
+  arrange(condition, trait, chr)
+
+tabdf2$grp <- ifelse(tabdf2$condition == "control", 1, 2)
+
+tabdf2$grp <- ifelse(grepl(tabdf2$trait, pattern="resid"), 3, tabdf2$grp)
+tabdf2$grp <- factor(tabdf2$grp, labels = c("Control", "Paraquat", "Paraquat\n-control"))
+
+ggplot(tabdf2) + aes(x=pos/1e6) + 
+  geom_bar(binwidth=0.5) + 
+  labs(x="Position (Mb)", y="Number of QTL") +
+  facet_grid(grp~chr, scales="free_y") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_allLM/allLM.tiff", height=4, width=7.5, units="in", dpi=300)
+
+## Figure 10
+#A - Worms and bubbles
+
+load(full, file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_bubblesROC/bubbleworm.RData")
+
+ggplot(data=full, aes(x=TOF, y=EXT, color=worm)) + geom_point(alpha=0.5) +
+  labs(x="Length (µm)", y="Optical density") +
+  xlim(0, 1500) + ylim(0, 1500) +
+  scale_color_manual(values=c("black", "red")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        legend.position="none",
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_bubblesROC/bubbleworm.tiff", height=4, width=6, units="in", dpi=300)
+
+#B - ROC curve for difference between worms and bubbles
+
+load(rocplot, file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_bubblesROC/rocplot.RData")
+
+grobroc <- ggplotGrob(ggplot(rocplot) + aes(x=fpr, y=tpr) + geom_line() +
+                        xlim(0,0.0075) + ylim(0.85, 1) +
+                        labs(x="FPR", y="TPR")+
+                        theme_bw() +
+                        theme(axis.text.x = element_text(size=10, color="black"),
+                              axis.text.y = element_text(size=10, color="black"),
+                              axis.title.x = element_text(size=10, face="bold", color="black"),
+                              axis.title.y = element_text(size=10, face="bold", color="black"),
+                              legend.position="none")
+)
+
+ggplot(rocplot) + aes(x=fpr, y=tpr) + geom_line() +
+  labs(x="False positive rate", y="True positive rate") +
+  annotation_custom(grob=grobroc, xmin=0.25, xmax=1, ymin=0.1, ymax=0.9) +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=12, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        legend.position="none",
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_bubblesROC/ROC.tiff", height=5, width=5, units="in", dpi=300)
+
