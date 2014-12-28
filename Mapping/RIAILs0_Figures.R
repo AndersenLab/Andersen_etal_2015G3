@@ -552,7 +552,7 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/iqrM
 
 ## Figure 7
 
-load(proc.pq3, file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_doseresponses/oldpqdose.RData")
+load(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_doseresponses/oldpqdose.RData")
 
 ggplot(proc.pq3) + aes(x=conc, y=mean.n, color=strain) + geom_line() +
   labs(x="Paraquat concentration (µm)", y="Mean num. of offspring") +
@@ -685,14 +685,18 @@ tabdf2 <- tabdf %>%
   mutate(condition = str_split_fixed(trait, pattern="\\.", n=2)[,1]) %>% 
   mutate(trait2 = str_split_fixed(trait, pattern="\\.", n=2)[,2]) %>%
   select(-trait) %>% rename(trait = trait2) %>%
+  filter(!grepl(trait, pattern="f.")) %>%
+  filter(!grepl(trait, pattern="react.")) %>%
   arrange(condition, trait, chr)
                            
 write.table(tabdf2, file="~/Dropbox/HTA + new RIAIL paper/Tables/allQTL.csv", sep=",", quote=F, row.names=F, col.names=T)
 
 ## Table, all phenotype data for RIAILs
 
-tab2 <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPhenotypes.csv") %>%
-  select(date:norm.n)
+tab2 <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPhenotypes.csv")
+
+tab2 <- tab2[,!grepl(colnames(tab2), pattern="react.")]
+tab2 <- tab2[,!grepl(colnames(tab2), pattern="f.")]
 
 write.table(tab2, file="~/Dropbox/HTA + new RIAIL paper/Tables/allpheno.csv", sep=",", quote=F, row.names=F, col.names=T)
 
@@ -700,6 +704,8 @@ write.table(tab2, file="~/Dropbox/HTA + new RIAIL paper/Tables/allpheno.csv", se
 
 genos <- data.frame(fread("~/Dropbox/AndersenLab/LabFolders/Stefan/GWAS/NIL_generation/N2xCB4856_598RIAILs_gen.csv",
                           header = T))
+
+load("~/Dropbox/AndersenLab/RCode/Linkage mapping/markers244.Rda")
 
 genos2 <- do.call(cbind, lapply(genos[,4:ncol(genos)], function(x){
   temp <- data.frame(gen = x)
@@ -719,9 +725,13 @@ genos5 <- genos3 %>%
   spread(key=strain, value=geno) %>%
   arrange(chr, cM)
 
-colnames(genos5) <- c("id", "chr", "cM", paste0("QX", seq(from=240, to=598)))
+genos6 <- data.frame(genos5[,1:3], WS244.pos=as.numeric(markers$WS244.pos[match(genos5$id, markers$SNP)]), genos5[,4:362] )
 
-write.table(genos5, file="~/Dropbox/HTA + new RIAIL paper/Tables/allnewgeno.csv", sep=",", quote=F, row.names=F, col.names=T)
+colnames(genos6) <- c("id", "chr", "cM", "WS244.pos", paste0("QX", seq(from=240, to=598)))
+
+#1 = N2, 2 = CB4856
+
+write.table(genos6, file="~/Dropbox/HTA + new RIAIL paper/Tables/allnewgeno.csv", sep=",", quote=F, row.names=F, col.names=T)
 
 ## Figure, all new RIAIL genotypes
 
