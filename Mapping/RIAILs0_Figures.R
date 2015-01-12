@@ -43,7 +43,7 @@
 library(dplyr) #Version 0.2
 library(ggplot2)
 
-## Figure 1, Allele frequencies
+## Figure S1, Allele frequencies
 
 #Plot for allele frequency figure
 
@@ -105,9 +105,18 @@ fig2DataB$chr <- ifelse(fig2DataB$chr==1, "I",
                                                 ifelse(fig2DataB$chr==4, "IV",
                                                        ifelse(fig2DataB$chr==5, "V", "X")))))
 
-ggplot(data=fig2DataB) + aes(x=var.exp) + geom_histogram() +
+tabdf2 <- fig2DataB %>% 
+  mutate(condition = str_split_fixed(trait, pattern="\\.", n=2)[,1]) %>% 
+  mutate(trait2 = str_split_fixed(trait, pattern="\\.", n=2)[,2]) %>%
+  select(-trait) %>% rename(trait = trait2) %>%
+  filter(!grepl(trait, pattern="f.")) %>%
+  filter(!grepl(trait, pattern="react.")) %>%
+  arrange(condition, trait, chr)
+
+ggplot(data=tabdf2) + aes(x=var.exp) + geom_histogram() +
   geom_vline(xintercept=0.04, color="red", linetype=2) +
   labs(x="Variance explained", y="Count") +
+  theme_bw() + 
   theme(axis.text.x = element_text(size=12, color="black"),
         axis.text.y = element_text(size=12, color="black"),
         axis.title.x = element_text(size=12, face="bold", color="black"),
@@ -120,9 +129,9 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_powercalcs/VE.tiff",
 
 
 
-## Figure 3, overview of HTA assay, made separately
+## Figure 1, overview of HTA assay, made separately
 
-## Figure 4, Fecundity in control conditions and mapping
+## Figure 2, Fecundity in control conditions and mapping
 # A
 fig4DataA <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPhenotypes.csv")
 nData <- fig4DataA %>% filter(drug=="control") %>% select(strain, n) %>% mutate(group=ifelse(strain=="N2", "N2", ifelse(strain=="CB4856", "CB4856", "RIAILs")))
@@ -130,7 +139,7 @@ nData <- fig4DataA %>% filter(drug=="control") %>% select(strain, n) %>% mutate(
 ggplot(nData, aes(x=factor(group), y=n)) + 
   geom_boxplot(aes(fill=factor(group))) + 
   theme_bw() + 
-  labs(x="", y="Num. of offspring", title="") +
+  labs(x="", y="Fecundity", title="") +
   theme(legend.position="none") + 
   scale_x_discrete(limits=c("N2", "CB4856", "RIAILs"), labels=c("Bristol", "CB4856", "RIAILs")) + 
   scale_fill_manual(values = c("N2" = "orange","CB4856" = "blue","RIAILs" = "gray")) + 
@@ -178,7 +187,7 @@ fig5Data <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPh
 # A
 ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.TOF)) + 
   geom_histogram() + 
-  labs(x="Median Time of Flight (µm)", y="Count") +
+  labs(x="Median body length (µm)", y="Count") +
   theme_bw() + 
   theme(axis.text.x = element_text(size=12, color="black"),
         axis.text.y = element_text(size=12, color="black"),
@@ -224,7 +233,7 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/TOFMap
 
 ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.EXT)) + 
   geom_histogram() + 
-  labs(x="Median Extinction", y="Count") +
+  labs(x="Median optical density", y="Count") +
   theme_bw() + 
   theme(axis.text.x = element_text(size=12, color="black"),
         axis.text.y = element_text(size=12, color="black"),
@@ -270,7 +279,7 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/EXTMap
 
 ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.norm.EXT)) + 
   geom_histogram() + 
-  labs(x="Median Normalized Extinction", y="Count") +
+  labs(x="Median normalized opt. density", y="Count") +
   theme_bw() + 
   theme(axis.text.x = element_text(size=12, color="black"),
         axis.text.y = element_text(size=12, color="black"),
@@ -311,7 +320,7 @@ ggplot(fig5DataFControlMap) +
 
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/normEXTMap.tiff", height=3, width=4.5, units="in", dpi=300)
 
-## Figure 6, because this code randomly selects 10 RIAILs to make the histograms. Do not re-run unless you want to redo the Figure.
+## Figure 3, because this code randomly selects 10 RIAILs to make the histograms. Do not re-run unless you want to redo the Figure.
 
 load("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/RawScoreData.Rda")
 
@@ -359,7 +368,7 @@ ggplot(histsData3, aes(x = TOF)) +
   geom_vline(data=quantileData, aes(xintercept=q90), colour = "purple") +
   facet_wrap(~strain, ncol=5) +
   xlim(0,750) +
-  labs(x="Length (µm)", y = "Count") +
+  labs(x="Body length (µm)", y = "Count") +
   theme_bw() +
   theme(axis.text.x = element_text(size=12, color="black", angle=45, hjust=1),
         axis.text.y = element_text(size=12, color="black"),
@@ -387,7 +396,7 @@ ggplot(fig6DataBControlMap) +
   geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
   geom_text(data=peaksDF, size= 1.5, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
   facet_grid(.~chr, scales="free_x") +
-  labs(x="Position (Mb)", y="LOD") +
+  labs(x="Position (Mb)", y="LOD", title="10th quantile") +
   facet_grid(.~chr, scales="free_x") +
   theme_bw() +
   theme(axis.text.x = element_text(size=0, color="black"),
@@ -397,7 +406,7 @@ ggplot(fig6DataBControlMap) +
         strip.text.x = element_text(size=10, face="bold", color="white"),
         strip.text.y = element_text(size=12, face="bold", color="black"),
         strip.background = element_rect(fill = "red"),
-        plot.title = element_text(size=12, face="bold"))
+        plot.title = element_text(size=10, face="bold"))
 
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q10Map.tiff", height=2, width=3, units="in", dpi=300)
 
@@ -417,7 +426,7 @@ ggplot(fig6DataCControlMap) +
   geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
   geom_text(data=peaksDF, size= 1.5, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
   facet_grid(.~chr, scales="free_x") +
-  labs(x="Position (Mb)", y="LOD") +
+  labs(x="Position (Mb)", y="LOD", title="25th quantile") +
   facet_grid(.~chr, scales="free_x") +
   theme_bw() +
   theme(axis.text.x = element_text(size=0, color="black"),
@@ -427,7 +436,7 @@ ggplot(fig6DataCControlMap) +
         strip.text.x = element_text(size=10, face="bold", color="white"),
         strip.text.y = element_text(size=12, face="bold", color="black"),
         strip.background = element_rect(fill = "orange"),
-        plot.title = element_text(size=12, face="bold"))
+        plot.title = element_text(size=10, face="bold"))
 
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q25Map.tiff", height=2, width=3, units="in", dpi=300)
 
@@ -555,7 +564,7 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/iqrM
 load(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_doseresponses/oldpqdose.RData")
 
 ggplot(proc.pq3) + aes(x=conc, y=mean.n, color=strain) + geom_line() +
-  labs(x="Paraquat concentration (µm)", y="Mean num. of offspring") +
+  labs(x="Paraquat concentration (mM)", y="Mean fecundity") +
   scale_color_manual(values=c("orange", "blue", "red", "black")) +
   theme_bw() +
   theme(axis.text.x = element_text(size=12, color="black"),
@@ -565,9 +574,9 @@ ggplot(proc.pq3) + aes(x=conc, y=mean.n, color=strain) + geom_line() +
         strip.text.x = element_text(size=12, face="bold", color="black"),
         strip.text.y = element_text(size=12, face="bold", color="black"),
         plot.title = element_text(size=12, face="bold"),
-        legend.position="none")
+        legend.title = element_text(size=0))
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_doseresponses/pqdose_n.tiff", height=3, width=4.5, units="in", dpi=300)
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_doseresponses/pqdose_n.tiff", height=3, width=6, units="in", dpi=300)
 
 
 
@@ -593,7 +602,7 @@ pqcomp3 <- merge(pqcomp2, summarizedScoreData, by="ind") %>% select(assay.x, pla
 
 ggplot(pqcomp3, aes(x = norm.EXT)) + 
   geom_bar(aes(fill = drug), position="dodge") + 
-  xlab("Normalized Extinction") + ylab("Count") + 
+  xlab("Normalized optical density") + ylab("Count") + 
   scale_fill_manual(values=c("control"="black", "paraquat"="red")) + 
   theme_bw() +
   theme(axis.text.x = element_text(size=10, color="black"),
@@ -793,8 +802,9 @@ tabdf2$grp <- ifelse(tabdf2$condition == "control", 1, 2)
 
 tabdf2$grp <- ifelse(grepl(tabdf2$trait, pattern="resid"), 3, tabdf2$grp)
 tabdf2$grp <- factor(tabdf2$grp, labels = c("Control", "Paraquat", "Paraquat\n-control"))
+tabdf3 <- tabdf2 %>% filter(!(grepl("react.", trait))) %>% filter(!grepl("f.", trait))
 
-ggplot(tabdf2) + aes(x=pos/1e6) + 
+ggplot(tabdf3) + aes(x=pos/1e6) + 
   geom_bar(binwidth=0.5) + 
   labs(x="Position (Mb)", y="Number of QTL") +
   facet_grid(grp~chr, scales="free_y") + 
@@ -812,10 +822,10 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_allLM/allLM.tiff", h
 ## Figure 10
 #A - Worms and bubbles
 
-load(full, file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_bubblesROC/bubbleworm.RData")
+load(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_bubblesROC/bubbleworm.RData")
 
 ggplot(data=full, aes(x=TOF, y=EXT, color=worm)) + geom_point(alpha=0.5) +
-  labs(x="Length (µm)", y="Optical density") +
+  labs(x="Body length (µm)", y="Optical density") +
   xlim(0, 1500) + ylim(0, 1500) +
   scale_color_manual(values=c("black", "red")) +
   theme_bw() +
