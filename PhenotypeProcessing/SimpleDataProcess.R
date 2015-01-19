@@ -17,7 +17,7 @@ generateReports <- FALSE
 
 directories <- c("Data/20110811_RIAILs0a", "Data/20110812_RIAILs0b", "Data/20110818_RIAILs0c", "Data/20110819_RIAILs0d")
 
-#Ceate the folders for the reports in eachg experiment's data folder
+#Create the folders for the reports in eachg experiment's data folder
 
 sapply(directories, function(x){dir.create(file.path(x, "reports"), showWarnings = FALSE)})
 
@@ -48,7 +48,7 @@ if(generateReports){
 
 rawScoreData <- data.frame(do.call(rbind, lapply(scoreList, function(x){data.frame(cbind(info(x,2), readPlate_worms(x, 60, 2000), step="score"))}))) %>% filter(drug != "missing")
 
-save(rawScoreData, file="Data/RawScoreData.Rda")
+#save(rawScoreData, file="Data/RawScoreData.Rda")
 
 # Get the strain data
 

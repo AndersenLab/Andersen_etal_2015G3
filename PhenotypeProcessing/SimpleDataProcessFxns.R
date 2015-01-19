@@ -325,45 +325,67 @@ scoreReport <- function(df){
 # This function will also calculate reaction norms (condition-control) for every strain and every trait.
 
 regress <- function(data, completeData, controls){
-    plates <- data[!duplicated(data[,c("assay", "plate", "drug")]), c("assay", "plate", "drug")]
-    controlValues <- plates %>%
-        group_by(assay, plate, drug) %>%
-        do(try({data.frame(filter(completeData,
-                                  assay==as.character(.$assay[1]),
-                                  as.numeric(as.character(plate)) %in% eval(eval(controls[controls$assay==.$assay[1],"control"]))))}))
-    controlValues <- controlValues %>% group_by(strain) %>%
-        summarise_each(funs(mean(., na.rm=TRUE)), -date, -experiment, -round, -assay, -plate, -drug, -row, -col)
-    
-    finalControl = data.frame(matrix(ncol=ncol(controlValues), nrow=0))
-    colnames(finalControl)=colnames(controlValues)
-    
-    for(i in 1:nrow(data)){
-        if(length(which(controlValues$strain==data$strain[i]))==0){
-            finalControl = rbind.fill(finalControl, data.frame(NA))
-        }else{
-            finalControl = rbind.fill(finalControl, controlValues[which(controlValues$strain==data$strain[i]),])
-        }
-    }
-    
-    regressedValues <- data.frame(do.call(cbind, lapply(which(colnames(data)=="n"):ncol(data),
-                                                        function(x){
-                                                            tryCatch({residuals(lm(data[,x] ~ data$assay + finalControl[,which(colnames(finalControl)==colnames(data)[x])], na.action=na.exclude))},
-                                                                     error = function(err){print(err);return(NA)})
-                                                        })))
-    
-    
-    reactValues <- data.frame(do.call(cbind, lapply(which(colnames(data)=="n"):ncol(data),
-                                                    function(x){
-                                                        reactNorms <- data[,x] - finalControl[,which(colnames(finalControl)==colnames(data)[x])]
-                                                        if(length(reactNorms)==0){
-                                                            reactNorms <- NA
-                                                        }
-                                                        return(reactNorms)
-                                                    })))
-    
-    finalDF <- data.frame(data, regressedValues)
-    colnames(finalDF)[(which(colnames(finalDF)=="norm.n")+1):ncol(finalDF)] <- paste0("resid.", colnames(finalDF)[which(colnames(finalDF)=="n"):which(colnames(finalDF)=="norm.n")])
-    finalDF <- data.frame(finalDF, reactValues)
-    colnames(finalDF)[(which(colnames(finalDF)=="resid.norm.n")+1):ncol(finalDF)] <- paste0("react.", colnames(finalDF)[which(colnames(finalDF)=="n"):which(colnames(finalDF)=="norm.n")])
-    return(finalDF)
+  data <- as.data.frame(data)
+  completeData <- as.data.frame(completeData)
+  plates <- data[!duplicated(data[,c("assay", "plate", "drug")]), c("assay", "plate", "drug")]
+  plates$plate <- as.numeric(plates$plate)
+  plates$control <- sapply(1:nrow(plates), function(x){unlist(filter(controls, plates$assay[x]==assay & plates$plate[x]==plate) %>% select(control))})
+  completeData$row <- as.character(completeData$row)
+  completeData$col <- as.numeric(as.character(completeData$col))
+  
+  controlValues <- data.frame(rbind_all(lapply(1:nrow(plates),
+                                               function(x){tryCatch({
+                                                 ifelse(plates$control[x]==0, 
+                                                        return(data.frame(matrix(nrow=96, ncol=ncol(completeData)))),
+                                                        return(data.frame(filter(completeData, assay==as.character(plates$assay[x]), as.numeric(plate) %in% unlist(plates$control[x])) %>% group_by(row, col) %>% summarise_each(funs(mean(., na.rm=TRUE))) %>% data.frame() %>% arrange(row, col))))},
+                                                 error = function(err){return(data.frame(matrix(nrow=96, ncol=ncol(completeData))))})})))[1:ncol(completeData)]
+  
+  
+  #     controlValues <- data.frame(do.call(rbind, lapply(1:nrow(plates), function(x){print(x);ifelse(plates$control[x]==0, print("Yes"), print("No"));tryCatch({ifelse(plates$control[x]==0, data.frame(filter(completeData, assay==as.character(plates$assay[x]), as.numeric(plate) %in% unlist(plates$control[x])) %>% group_by(row, col) %>% summarise_each(funs(mean(., na.rm=TRUE))) %>% data.frame() %>% arrange(row, col)), data.frame(matrix(nrow=96)))}, error = function(err){print(err);return(data.frame(matrix(nrow=96)))})})))
+  
+  regressedValues <- data.frame(do.call(cbind, lapply(which(colnames(data)=="n"):ncol(data),
+                                                      function(x){
+                                                        tryCatch({residuals(lm(data[,x] ~ data$assay + controlValues[,which(colnames(controlValues)==colnames(data)[x])], na.action=na.exclude))},
+                                                                 error = function(err){return(NA)})
+                                                      })))
+  
+  regressedAssayValues <- data.frame(do.call(cbind, lapply(which(colnames(data)=="n"):ncol(data),
+                                                           function(x){
+                                                             tryCatch({residuals(lm(data[,x] ~ data$assay, na.action=na.exclude))},
+                                                                      error = function(err){return(NA)})
+                                                           })))
+  
+  
+  
+  #     reactValues <- data.frame(do.call(cbind, lapply(which(colnames(data)=="n"):ncol(data),
+  #                                                     function(x){
+  #                                                         reactNorms <- data[,x] - controlValues[,which(colnames(controlValues)==colnames(data)[x])]
+  #                                                         if(length(reactNorms)==0){
+  #                                                             reactNorms <- NA
+  #                                                         }
+  #                                                         return(reactNorms)
+  #                                                     })))
+  
+  finalDF <- data.frame(data, regressedValues)
+  colnames(finalDF)[(which(colnames(finalDF)=="norm.n")+1):ncol(finalDF)] <- paste0("resid.", colnames(finalDF)[which(colnames(finalDF)=="n"):which(colnames(finalDF)=="norm.n")])
+  finalDF <- data.frame(finalDF, regressedAssayValues)
+  colnames(finalDF)[(which(colnames(finalDF)=="resid.norm.n")+1):ncol(finalDF)] <- paste0("resid.a.", colnames(finalDF)[which(colnames(finalDF)=="n"):which(colnames(finalDF)=="norm.n")])
+  return(finalDF)
+}
+
+
+
+regressAssayValues <- function(data){
+  data <- as.data.frame(data)
+  plates <- data[!duplicated(data[,c("assay", "plate", "drug")]), c("assay", "plate", "drug")]
+  
+  regressedAssayValues <- data.frame(do.call(cbind, lapply(which(colnames(data)=="n"):ncol(data),
+                                                           function(x){
+                                                             tryCatch({residuals(lm(data[,x] ~ data$assay, na.action=na.exclude))},
+                                                                      error = function(err){return(NA)})
+                                                           })))
+  
+  finalDF <- data.frame(data, regressedAssayValues)
+  colnames(finalDF)[(which(colnames(finalDF)=="norm.n")+1):ncol(finalDF)] <- paste0("resid.a.", colnames(finalDF)[which(colnames(finalDF)=="n"):which(colnames(finalDF)=="norm.n")])
+  return(finalDF)
 }
