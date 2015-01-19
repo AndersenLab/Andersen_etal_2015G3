@@ -63,6 +63,7 @@ readPlate_worms <- function(file, tofmin=60, tofmax=2000, extmin=0, extmax=10000
     plate <- readSorter(file, tofmin, tofmax, extmin, extmax)
     modplate <- with(plate, data.frame(row=Row, col=as.factor(Column), sort=Status.sort, TOF=TOF, EXT=EXT, time=Time.Stamp, green=Green, yellow=Yellow, red=Red))
     modplate <- modplate %>% group_by(row, col) %>% do(extractTime(.))
+    modplate <- data.frame(modplate)
     modplate[,10:13] <- apply(modplate[,c(5, 7:9)], 2, function(x){x/modplate$TOF})
     colnames(modplate)[10:13] <- c("norm.EXT", "norm.green", "norm.yellow", "norm.red")
     if(SVM){
@@ -70,7 +71,7 @@ readPlate_worms <- function(file, tofmin=60, tofmax=2000, extmin=0, extmax=10000
         modplate$object <- plateprediction[,"1"]
         modplate$call50 <- factor(as.numeric(modplate$object>0.5), levels=c(1,0), labels=c("object", "bubble"))
     }
-    modplate$stage <- ifelse(modplate$TOF>=60 & modplate$TOF<90, "L1", 
+    modplate$stage <- ifelse(modplate$TOF>=60 & modplate$TOF<90, "L1",
                              ifelse(modplate$TOF>=90 & modplate$TOF<200, "L2/L3",
                                     ifelse(modplate$TOF>=200 & modplate$TOF<300, "L4",
                                            ifelse(modplate$TOF>=300, "adult", NA))))
@@ -328,17 +329,32 @@ regress <- function(data, completeData, controls){
   data <- as.data.frame(data)
   completeData <- as.data.frame(completeData)
   plates <- data[!duplicated(data[,c("assay", "plate", "drug")]), c("assay", "plate", "drug")]
+  plates <- data.frame(plates)
   plates$plate <- as.numeric(plates$plate)
-  plates$control <- sapply(1:nrow(plates), function(x){unlist(filter(controls, plates$assay[x]==assay & plates$plate[x]==plate) %>% select(control))})
+  
+  controls$control <- sapply(controls$control, eval)
+  controls$plates <- sapply(controls$plates, eval)
+  
+  plates$control <- sapply(1:nrow(plates), function(x){
+        controlPlates = controls[as.character(plates$assay[x]) == controls$assay & sapply(controls$plates, function(y){plates$plate[x] %in% y}), "control"]
+        if(length(controlPlates) == 0){
+            return(NA)
+        } else {
+            return(controlPlates)
+        }
+      })
+  
+  
+  
   completeData$row <- as.character(completeData$row)
   completeData$col <- as.numeric(as.character(completeData$col))
   
   controlValues <- data.frame(rbind_all(lapply(1:nrow(plates),
                                                function(x){tryCatch({
-                                                 ifelse(plates$control[x]==0, 
+                                                 ifelse(is.na(plates$control[x]), 
                                                         return(data.frame(matrix(nrow=96, ncol=ncol(completeData)))),
                                                         return(data.frame(filter(completeData, assay==as.character(plates$assay[x]), as.numeric(plate) %in% unlist(plates$control[x])) %>% group_by(row, col) %>% summarise_each(funs(mean(., na.rm=TRUE))) %>% data.frame() %>% arrange(row, col))))},
-                                                 error = function(err){return(data.frame(matrix(nrow=96, ncol=ncol(completeData))))})})))[1:ncol(completeData)]
+                                                 error = function(err){print(error);return(data.frame(matrix(nrow=96, ncol=ncol(completeData))))})})))[1:ncol(completeData)]
   
   
   #     controlValues <- data.frame(do.call(rbind, lapply(1:nrow(plates), function(x){print(x);ifelse(plates$control[x]==0, print("Yes"), print("No"));tryCatch({ifelse(plates$control[x]==0, data.frame(filter(completeData, assay==as.character(plates$assay[x]), as.numeric(plate) %in% unlist(plates$control[x])) %>% group_by(row, col) %>% summarise_each(funs(mean(., na.rm=TRUE))) %>% data.frame() %>% arrange(row, col)), data.frame(matrix(nrow=96)))}, error = function(err){print(err);return(data.frame(matrix(nrow=96)))})})))
