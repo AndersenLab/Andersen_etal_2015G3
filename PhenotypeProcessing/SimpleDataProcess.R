@@ -120,4 +120,8 @@ colnames(controls) <- c("assay", "control", "plates")
 finalData <- completeData %>% group_by(drug) %>% do(regress(., completeData, controls)) %>% arrange(assay)
 finalData[finalData$drug=="control",which(colnames(finalData)=="resid.n"):ncol(finalData)] <- NA
 
+#Reduce data to resid and resid.a. Also, eliminate all f. traits.
+
+
+
 write.csv(finalData, file="Data/ProcessedPhenotypes.csv", row.names=FALSE)
