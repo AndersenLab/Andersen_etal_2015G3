@@ -122,6 +122,6 @@ finalData[finalData$drug=="control",which(colnames(finalData)=="resid.n"):ncol(f
 
 #Reduce data to resid and resid.a. Also, eliminate all f. traits.
 
+red.final <- finalData %>% select(date:col, resid.n:resid.iqr.yellow, resid.a.n:resid.a.iqr.yellow)
 
-
-write.csv(finalData, file="Data/ProcessedPhenotypes.csv", row.names=FALSE)
+write.csv(red.final, file="Data/ProcessedPhenotypes.csv", row.names=FALSE)
