@@ -84,6 +84,12 @@ readPlate_worms <- function(file, tofmin=60, tofmax=2000, extmin=0, extmax=10000
 summarizePlate_worms <- function(plate, strains=NULL, quantiles=FALSE, log=FALSE, ends=FALSE) {
     plate <- plate[plate$call50=="object" | plate$TOF == -1 | is.na(plate$call50),]
     plate <- fillWells(plate)
+    
+    start <- which(colnames(plate)=="TOF")
+    end <- which(colnames(plate)=="object")
+    
+    plate[,start:end] <- lapply(plate[,start:end], as.numeric)
+    
     processed <- plate %>% group_by(row, col) %>% summarise(n=ifelse(length(TOF[!is.na(TOF)])==0, NA, length(TOF[!is.na(TOF)])),
                                                             n.sorted=sum(sort==6),
                                                             
