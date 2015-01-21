@@ -34,7 +34,7 @@ countStrainsPerTrait = function(pheno) {apply(pheno, 2, function(x){sum(!is.na(x
 # setCorrect = are you doing set correction or not?
 # scaleVar = scale variance or not
 extractScaledPhenotype=function(impcross, set=NULL, setCorrect=FALSE, scaleVar=TRUE){
-    p = impcross$pheno[,4:ncol(impcross$pheno)]
+    p = impcross$pheno[,3:ncol(impcross$pheno)]
     if(setCorrect==FALSE) { apply(p, 2, scale, scale=scaleVar) } else {
         s=apply(p, 2, function(x) { 
             xs = split(x,set)
