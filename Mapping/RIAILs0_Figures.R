@@ -307,12 +307,12 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/iqrM
 
 
 ## Figure 5
-fig5Data <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPhenotypes.csv")
+fig5Data <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/ProcessedPhenotypes.csv")
 
 # A
-ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.TOF)) + 
+ggplot(fig5Data[fig5Data$drug=="control",], aes(x = resid.a.n)) + 
   geom_histogram() + 
-  labs(x="Median body length (µm)", y="Count") +
+  labs(x="Normalized median body length (µm)", y="Count") +
   theme_bw() + 
   theme(axis.text.x = element_text(size=12, color="black"),
         axis.text.y = element_text(size=12, color="black"),
