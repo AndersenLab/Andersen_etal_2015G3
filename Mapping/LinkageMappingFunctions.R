@@ -284,7 +284,7 @@ mergePheno2 <- function(cross, phenotype, set=NULL){
 }
 
 renameCols <- function(x){
-    colnames(x)[which(colnames(x) == "n"):ncol(x)] <- paste0(x$drug[1], ".", colnames(x)[which(colnames(x) == "n"):ncol(x)])
+    colnames(x)[which(colnames(x) == "resid.n"):ncol(x)] <- paste0(x$drug[1], ".", colnames(x)[which(colnames(x) == "resid.n"):ncol(x)])
     return(x)
 }
 

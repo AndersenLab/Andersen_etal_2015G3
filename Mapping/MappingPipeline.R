@@ -17,7 +17,7 @@ source("Mapping/LinkageMappingFunctions.R")
 
 # Set your phenotype data file here
 
-pheno <- read.csv("Data/MappingPhenotypes.csv")
+pheno <- read.csv("Data/ProcessedPhenotypes.csv")
 
 # Remove wash wells (wells where the strain is NA)
 reduced.pheno <- pheno[!is.na(pheno$strain),]
@@ -26,18 +26,26 @@ reduced.pheno <- pheno[!is.na(pheno$strain),]
 reduced.pheno$id <- str_split_fixed(reduced.pheno$strain, "QX", 2)[,2]
 
 # Summarize all traits by strain id, drug (really only necessary for RIAILs0, but doesn't hurt other RIAILs experiments)
-trait <- reduced.pheno %>% group_by(id, drug) %>% summarise_each(funs(mean)) %>% filter(id!="")
+trait <- reduced.pheno %>% 
+  select(-experiment, -assay, -round, -plate, -row, -col, -date, -strain) %>% 
+  group_by(id, drug) %>% summarise_each(funs(mean)) %>% 
+  filter(id!="") %>%
+  data.frame()
 
 # Rename all of the columns in the format "drug.trait"
-trait2 <- trait %>% group_by(id, drug) %>% do(renameCols(.))
+trait2 <- trait %>% group_by(id, drug) %>% do(renameCols(.)) %>% ungroup() %>% select(-drug) %>% data.frame() 
+
+trait2$id <- as.integer(as.numeric(as.character(trait2$id)))
 
 # Collapse down to one row per strain
-trait3 <- trait2 %>% group_by(id) %>% summarise_each(funs(mean(., na.rm=TRUE))) %>%
-    filter(id != "") %>% select(id, contains("\\."), -contains("sorted"))
+trait3 <- trait2 %>% 
+  group_by(id) %>% 
+  summarise_each(funs(mean(., na.rm=TRUE))) %>%
+  data.frame()
 
 # Remove columns that are all NA 
-trait3 = trait3[,-which(unlist(lapply(trait3, function(x){all(is.na(x))})))]
-trait3$id <- as.integer(as.numeric(as.character(trait3$id)))
+trait4 = trait3[,-which(unlist(lapply(trait3, function(x){all(is.na(x))})))]
+
 
 #-----------------------End processing, start mapping--------------------------#
 
@@ -46,18 +54,20 @@ load("Mapping/N2xCB4856_RIAILs_Rqtlfiles.RData")
 
 # Remove interpolated SNPs
 N2xCB4856.cross <- calc.genoprob(N2xCB4856.cross, step=0)
+N2xCB4856.cross$pheno  <- N2xCB4856.cross$pheno[,-c(3:4)]
 
-# Make the "id" column numeric
-N2xCB4856.cross$pheno$id <- as.numeric(sapply(as.character(N2xCB4856.cross$pheno$id), function(x){strsplit(x, "X")[[1]][2]}))
+# Make the "id" column numeric, not necessary in new cross object
+#N2xCB4856.cross$pheno$id <- as.numeric(sapply(as.character(N2xCB4856.cross$pheno$id), function(x){strsplit(x, "X")[[1]][2]}))
 
-# Reorder by trait id
-trait3 <- trait3[order(trait3$id),]
+# Reorder by trait id, not necessary in new cross object
+#trait3 <- trait3[order(trait3$id),]
 
 # Remove phenotype data from Matt Rockman's strains
-trait3 <- trait3[trait3$id>239,]
+trait4 <- trait4[trait4$id>239,]
+trait5 <- trait4 %>% select(-contains("paraquat.resid.a."))
 
 # Set the phenotype information for the cross object
-N2xCB4856.cross$pheno <- mergePheno2(N2xCB4856.cross, trait3)
+N2xCB4856.cross$pheno <- mergePheno2(N2xCB4856.cross, trait5)
 
 # Extract the scaled and centered phenotype data
 pdata.01s = extractScaledPhenotype(N2xCB4856.cross)
@@ -94,6 +104,8 @@ LODS.01s      = LODmatrix.2.scanone(LODS.01, N2xCB4856.cross)
 load("Mapping/markers244.Rda")
 LODS.01s$pos <- sapply(rownames(LODS.01s), function(x){markers[markers$SNP==x, "WS244.pos"]})
 
+peaklist.01   = getChrPeaks(mindex.split, chr.mindex.offset, LODS.01)
+
 # Get the false discovery rate (FDR) for all traits and save immediately (this step can take several hours)
 # or load in the saved FDR data
 
@@ -127,35 +139,36 @@ peaks <- do.call(rbind, lapply(3:ncol(LODS.01s), function(x){
 # trait chr pos LOD VE scaled_effect_size CI.L CI.R
 peakFit=list()
 for(i in 1:nrow(peaks)) {
-    trait=as.character(peaks$trait[i])
-    peak.markers=as.character(peaks$SNP[i])
-    chr.vec = as.numeric(as.character(peaks$chr[i]))
-    LOD.vec = LODS.01[which(rownames(LODS.01)==trait),]
-    SNP.name = as.character(peaks$SNP[i]) 
-    ax = paste('gdata[,', which(colnames(gdata)==peak.markers),']', sep='')
-    aq = paste(ax, collapse= ' + ')
-    am = lm(paste('pdata.01s[,' , which(colnames(pdata.01s)==trait), ']', '~', (aq), '-1'))
-    aov.a=anova(am)
-    tssq = sum(aov.a[,2])
-    a.var.exp = aov.a[1:(nrow(aov.a)-1),2]/tssq  
-    a.eff.size= as.vector(coefficients(am))
-    
-    # Calculate confidence interval bounds
-    lodsData <- LODS.01s[,c(1, 2, which(colnames(LODS.01s)==trait))]
-    lodsData$chr <- as.numeric(as.character(lodsData$chr))
-    CIs <- list()
-    j <- chr.vec
-    int <- cint(lodsData, chr=j, lodcolumn=3)
-    CI.L.marker <- rownames(int)[1]
-    CI.L.pos <- as.numeric(int[1,2])
-    CI.R.marker <- rownames(int)[nrow(int)]
-    CI.R.pos <- as.numeric(int[nrow(int),2])
-    CI <- data.frame(CI.L.marker, CI.L.pos, CI.R.marker, CI.R.pos)
-    CIs <- append(CIs, list(CI))
-    CIs <- do.call(rbind, CIs)
-    
-    
-    peakFit=append(peakFit, list(data.frame(cbind(data.frame(trait=trait, SNP=SNP.name, var.exp=a.var.exp, eff.size=a.eff.size), CIs))))
+  print(i)
+  trait=as.character(peaks$trait[i])
+  peak.markers=as.character(peaks$SNP[i])
+  chr.vec = as.character(peaks$chr[i])
+  LOD.vec = LODS.01[which(rownames(LODS.01)==trait),]
+  SNP.name = as.character(peaks$SNP[i]) 
+  ax = paste('gdata[,', which(colnames(gdata)==peak.markers),']', sep='')
+  aq = paste(ax, collapse= ' + ')
+  am = lm(paste('pdata.01s[,' , which(gsub("-", "\\.", colnames(pdata.01s))==trait), ']', '~', (aq), '-1'))
+  aov.a=anova(am)
+  tssq = sum(aov.a[,2])
+  a.var.exp = aov.a[1:(nrow(aov.a)-1),2]/tssq  
+  a.eff.size= as.vector(coefficients(am))
+  
+  # Calculate confidence interval bounds
+  lodsData <- LODS.01s[,c(1, 2, which(colnames(LODS.01s)==trait))]
+  lodsData$chr <- as.character(lodsData$chr)
+  CIs <- list()
+  j <- chr.vec
+  int <- cint(lodsData, chr=j, lodcolumn=3)
+  CI.L.marker <- rownames(int)[1]
+  CI.L.pos <- as.numeric(int[1,2])
+  CI.R.marker <- rownames(int)[nrow(int)]
+  CI.R.pos <- as.numeric(int[nrow(int),2])
+  CI <- data.frame(CI.L.marker, CI.L.pos, CI.R.marker, CI.R.pos)
+  CIs <- append(CIs, list(CI))
+  CIs <- do.call(rbind, CIs)
+  
+  
+  peakFit=append(peakFit, list(data.frame(cbind(data.frame(trait=trait, SNP=SNP.name, var.exp=a.var.exp, eff.size=a.eff.size), CIs))))
 }
 peakFit.df = do.call('rbind', peakFit)
 
