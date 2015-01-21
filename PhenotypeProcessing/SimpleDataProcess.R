@@ -122,6 +122,6 @@ finalData <- completeData %>% group_by(drug) %>% do(regress(., completeData, con
 
 #Reduce data to resid and resid.a. Also, eliminate all f. traits.
 
-red.final <- finalData %>% select(date:col, resid.n:resid.iqr.yellow, resid.a.n:resid.a.iqr.yellow)
+red.final <- finalData %>% select(assay:strain, resid.n:resid.iqr.yellow, resid.a.n:resid.a.iqr.yellow) %>% data.frame()
 
 write.csv(red.final, file="Data/ProcessedPhenotypes.csv", row.names=FALSE)
