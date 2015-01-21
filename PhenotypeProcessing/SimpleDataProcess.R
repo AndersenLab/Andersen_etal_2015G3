@@ -118,7 +118,7 @@ colnames(controls) <- c("assay", "control", "plates")
 # Calculate residuals and reaction norms for all traits
 
 finalData <- completeData %>% group_by(drug) %>% do(regress(., completeData, controls)) %>% arrange(assay)
-finalData[finalData$drug=="control",which(colnames(finalData)=="resid.n"):ncol(finalData)] <- NA
+#finalData[finalData$drug=="control",which(colnames(finalData)=="resid.n"):ncol(finalData)] <- NA
 
 #Reduce data to resid and resid.a. Also, eliminate all f. traits.
 
