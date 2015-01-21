@@ -117,11 +117,23 @@ colnames(controls) <- c("assay", "control", "plates")
 
 # Calculate residuals and reaction norms for all traits
 
-finalData <- completeData %>% group_by(drug) %>% do(regress(., completeData, controls)) %>% arrange(assay)
+finalData <- completeData %>% group_by(drug) %>% do(regress(., completeData, controls)) %>% arrange(assay) %>% data.frame()
 #finalData[finalData$drug=="control",which(colnames(finalData)=="resid.n"):ncol(finalData)] <- NA
+
+ggplot(finalData) + aes(x=n) + geom_histogram() + facet_grid(drug~.)
+
+#Need to prune outlier wells from data
+
+#Remove outlier brood size wells
+red.final <- finalData %>% 
+  filter(n > 5) %>%
+  filter(n<330) %>%
+  filter(!is.na(strain))
+
+ggplot(red.final) + aes(x=n) + geom_histogram() + facet_grid(drug~.)
 
 #Reduce data to resid and resid.a. Also, eliminate all f. traits.
 
-red.final <- finalData %>% select(assay:strain, resid.n:resid.iqr.yellow, resid.a.n:resid.a.iqr.yellow) %>% data.frame()
+red.final2 <- red.final %>% select(assay:strain, resid.n:resid.iqr.yellow, resid.a.n:resid.a.iqr.yellow) %>% data.frame()
 
-write.csv(red.final, file="Data/ProcessedPhenotypes.csv", row.names=FALSE)
+write.csv(red.final2, file="Data/ProcessedPhenotypes.csv", row.names=FALSE)
