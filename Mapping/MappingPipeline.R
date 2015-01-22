@@ -19,20 +19,21 @@ source("Mapping/LinkageMappingFunctions.R")
 
 pheno <- read.csv("Data/ProcessedPhenotypes.csv")
 
-# Remove wash wells (wells where the strain is NA)
-reduced.pheno <- pheno[!is.na(pheno$strain),]
-
 # Get the id number for mergePheno2 function, done by simple string split
-reduced.pheno$id <- str_split_fixed(reduced.pheno$strain, "QX", 2)[,2]
+pheno$id <- str_split_fixed(pheno$strain, "QX", 2)[,2]
 
 # Summarize all traits by strain id, drug (really only necessary for RIAILs0, but doesn't hurt other RIAILs experiments)
-trait <- reduced.pheno %>% 
-  select(-experiment, -assay, -round, -plate, -row, -col, -date, -strain) %>% 
+trait <- pheno %>% 
+  select(-strain, -contains("yellow"), -contains("green"), -contains("red")) %>% 
   group_by(id, drug) %>% summarise_each(funs(mean)) %>% 
   filter(id!="") %>%
   data.frame()
 
+#Save pruned mapping phenotype data for figures
+#write.csv(trait, file="Data/SummarizedProcPhenotypes.csv", row.names=FALSE)
+
 # Rename all of the columns in the format "drug.trait"
+
 trait2 <- trait %>% group_by(id, drug) %>% do(renameCols(.)) %>% ungroup() %>% select(-drug) %>% data.frame() 
 
 trait2$id <- as.integer(as.numeric(as.character(trait2$id)))
@@ -45,6 +46,9 @@ trait3 <- trait2 %>%
 
 # Remove columns that are all NA 
 trait4 = trait3[,-which(unlist(lapply(trait3, function(x){all(is.na(x))})))]
+
+#Save mapping phenotype data for figures
+#write.csv(trait4, file="Data/MappingPhenotypes.csv", row.names=FALSE)
 
 
 #-----------------------End processing, start mapping--------------------------#

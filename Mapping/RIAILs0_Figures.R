@@ -140,7 +140,7 @@ ggplot(fig6DataBControlMap) +
   geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
   geom_text(data=peaksDF, size= 1.5, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
   facet_grid(.~chr, scales="free_x") +
-  labs(x="Position (Mb)", y="LOD", title="10th quantile") +
+  labs(x="Position (Mb)", y="LOD") +
   facet_grid(.~chr, scales="free_x") +
   theme_bw() +
   theme(axis.text.x = element_text(size=0, color="black"),
@@ -170,7 +170,7 @@ ggplot(fig6DataCControlMap) +
   geom_segment(data=peaksDF, aes(x=CI.L.pos/1e6, xend=CI.R.pos/1e6, y=0, yend=0), colour="blue", size=2) +
   geom_text(data=peaksDF, size= 1.5, aes(x=pos/1e6, y = LOD+((1.27*max(LOD)-max(LOD))-(1.1*max(LOD)-max(LOD))), label=paste0(round(100*var.exp, 2), "%")), fontface="bold") +
   facet_grid(.~chr, scales="free_x") +
-  labs(x="Position (Mb)", y="LOD", title="25th quantile") +
+  labs(x="Position (Mb)", y="LOD") +
   facet_grid(.~chr, scales="free_x") +
   theme_bw() +
   theme(axis.text.x = element_text(size=0, color="black"),
@@ -304,15 +304,13 @@ ggplot(fig6DataGControlMap) +
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/iqrMap.tiff", height=2, width=3, units="in", dpi=300)
 
 #####------------------------------------------------------------------------#####
-
-
-## Figure 5
-fig5Data <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/ProcessedPhenotypes.csv")
+## Figure 4
+df <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/ProcessedPhenotypes.csv")
 
 # A
-ggplot(fig5Data[fig5Data$drug=="control",], aes(x = resid.a.n)) + 
+ggplot(df[df$drug=="control",], aes(x = resid.a.median.TOF)) + 
   geom_histogram() + 
-  labs(x="Normalized median body length (µm)", y="Count") +
+  labs(x="Median body length (µm)", y="Count") +
   theme_bw() + 
   theme(axis.text.x = element_text(size=12, color="black"),
         axis.text.y = element_text(size=12, color="black"),
@@ -325,13 +323,13 @@ ggplot(fig5Data[fig5Data$drug=="control",], aes(x = resid.a.n)) +
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/TOFHist.tiff", height=3, width=3, units="in", dpi=300)
 
 # B
-fig5DataBControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.median.TOF")
-fig5DataBControlMap$chr <- ifelse(fig5DataBControlMap$chr==1, "I",
-                                  ifelse(fig5DataBControlMap$chr==2, "II",
-                                         ifelse(fig5DataBControlMap$chr==3, "III",
-                                                ifelse(fig5DataBControlMap$chr==4, "IV",
-                                                       ifelse(fig5DataBControlMap$chr==5, "V", "X")))))
-peaksDF <- fig5DataBControlMap[!is.na(fig5DataBControlMap$var.exp) & as.character(fig5DataBControlMap$trait)=="control.median.TOF",]
+fig5DataBControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.resid.a.median.TOF")
+# fig5DataBControlMap$chr <- ifelse(fig5DataBControlMap$chr==1, "I",
+#                                   ifelse(fig5DataBControlMap$chr==2, "II",
+#                                          ifelse(fig5DataBControlMap$chr==3, "III",
+#                                                 ifelse(fig5DataBControlMap$chr==4, "IV",
+#                                                        ifelse(fig5DataBControlMap$chr==5, "V", "X")))))
+peaksDF <- fig5DataBControlMap[!is.na(fig5DataBControlMap$var.exp) & as.character(fig5DataBControlMap$trait)=="control.resid.a.median.TOF",]
 
 ggplot(fig5DataBControlMap) +
   geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
@@ -353,10 +351,8 @@ ggplot(fig5DataBControlMap) +
 
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/TOFMap.tiff", height=3, width=4.5, units="in", dpi=300)
 
-
 # C
-
-ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.EXT)) + 
+ggplot(df[df$drug=="control",], aes(x = resid.a.median.EXT)) + 
   geom_histogram() + 
   labs(x="Median optical density", y="Count") +
   theme_bw() + 
@@ -371,13 +367,13 @@ ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.EXT)) +
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/EXTHist.tiff", height=3, width=3, units="in", dpi=300)
 
 # D
-fig5DataDControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.median.EXT")
-fig5DataDControlMap$chr <- ifelse(fig5DataDControlMap$chr==1, "I",
-                                  ifelse(fig5DataDControlMap$chr==2, "II",
-                                         ifelse(fig5DataDControlMap$chr==3, "III",
-                                                ifelse(fig5DataDControlMap$chr==4, "IV",
-                                                       ifelse(fig5DataDControlMap$chr==5, "V", "X")))))
-peaksDF <- fig5DataDControlMap[!is.na(fig5DataDControlMap$var.exp) & as.character(fig5DataDControlMap$trait)=="control.median.EXT",]
+fig5DataDControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.resid.a.median.EXT")
+# fig5DataDControlMap$chr <- ifelse(fig5DataDControlMap$chr==1, "I",
+#                                   ifelse(fig5DataDControlMap$chr==2, "II",
+#                                          ifelse(fig5DataDControlMap$chr==3, "III",
+#                                                 ifelse(fig5DataDControlMap$chr==4, "IV",
+#                                                        ifelse(fig5DataDControlMap$chr==5, "V", "X")))))
+peaksDF <- fig5DataDControlMap[!is.na(fig5DataDControlMap$var.exp) & as.character(fig5DataDControlMap$trait)=="control.resid.a.median.EXT",]
 
 ggplot(fig5DataDControlMap) +
   geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
@@ -402,7 +398,7 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/EXTMap
 
 # E
 
-ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.norm.EXT)) + 
+ggplot(df[df$drug=="control",], aes(x = resid.a.median.norm.EXT)) + 
   geom_histogram() + 
   labs(x="Median normalized opt. density", y="Count") +
   theme_bw() + 
@@ -417,13 +413,13 @@ ggplot(fig5Data[fig5Data$drug=="control",], aes(x = median.norm.EXT)) +
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/normEXTHist.tiff", height=3, width=3, units="in", dpi=300)
 
 # F
-fig5DataFControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.median.norm.EXT")
-fig5DataFControlMap$chr <- ifelse(fig5DataFControlMap$chr==1, "I",
-                                  ifelse(fig5DataFControlMap$chr==2, "II",
-                                         ifelse(fig5DataFControlMap$chr==3, "III",
-                                                ifelse(fig5DataFControlMap$chr==4, "IV",
-                                                       ifelse(fig5DataFControlMap$chr==5, "V", "X")))))
-peaksDF <- fig5DataFControlMap[!is.na(fig5DataFControlMap$var.exp) & as.character(fig5DataFControlMap$trait)=="control.median.norm.EXT",]
+fig5DataFControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.resid.a.median.norm.EXT")
+# fig5DataFControlMap$chr <- ifelse(fig5DataFControlMap$chr==1, "I",
+#                                   ifelse(fig5DataFControlMap$chr==2, "II",
+#                                          ifelse(fig5DataFControlMap$chr==3, "III",
+#                                                 ifelse(fig5DataFControlMap$chr==4, "IV",
+#                                                        ifelse(fig5DataFControlMap$chr==5, "V", "X")))))
+peaksDF <- fig5DataFControlMap[!is.na(fig5DataFControlMap$var.exp) & as.character(fig5DataFControlMap$trait)=="control.resid.a.median.norm.EXT",]
 
 ggplot(fig5DataFControlMap) +
   geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
@@ -445,8 +441,8 @@ ggplot(fig5DataFControlMap) +
 
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normalizedEXT/normEXTMap.tiff", height=3, width=4.5, units="in", dpi=300)
 
-
-## Figure 7
+#####------------------------------------------------------------------------#####
+## Figure 5
 
 load(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_doseresponses/oldpqdose.RData")
 
@@ -465,12 +461,12 @@ ggplot(proc.pq3) + aes(x=conc, y=mean.n, color=strain) + geom_line() +
 
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_doseresponses/pqdose_n.tiff", height=3, width=6, units="in", dpi=300)
 
+#####------------------------------------------------------------------------#####
+## Figure 6
 
-
-## Figure 8
 # A
 load("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/RawScoreData.Rda")
-summarizedScoreData <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/ProcessedPhenotypes.csv") %>% select(assay, plate, row, col, strain)
+summarizedScoreData <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/ProcessedPhenotypesFull.csv") %>% select(assay, plate, row, col, strain)
 
 pqcomp <- rawScoreData %>%
   select(assay, plate, drug, row, col, norm.EXT)
@@ -505,11 +501,11 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normEXTpq/normEXThis
 
 # B
 fig8DataBControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="paraquat.resid.mean.norm.EXT")
-fig8DataBControlMap$chr <- ifelse(fig8DataBControlMap$chr==1, "I",
-                                  ifelse(fig8DataBControlMap$chr==2, "II",
-                                         ifelse(fig8DataBControlMap$chr==3, "III",
-                                                ifelse(fig8DataBControlMap$chr==4, "IV",
-                                                       ifelse(fig8DataBControlMap$chr==5, "V", "X")))))
+# fig8DataBControlMap$chr <- ifelse(fig8DataBControlMap$chr==1, "I",
+#                                   ifelse(fig8DataBControlMap$chr==2, "II",
+#                                          ifelse(fig8DataBControlMap$chr==3, "III",
+#                                                 ifelse(fig8DataBControlMap$chr==4, "IV",
+#                                                        ifelse(fig8DataBControlMap$chr==5, "V", "X")))))
 peaksDF <- fig8DataBControlMap[!is.na(fig8DataBControlMap$var.exp) & as.character(fig8DataBControlMap$trait)=="paraquat.resid.mean.norm.EXT",]
 
 ggplot(fig8DataBControlMap) +
@@ -530,162 +526,6 @@ ggplot(fig8DataBControlMap) +
         plot.title = element_text(size=12, face="bold"))
 
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normEXTpq/PQresidnormEXTmap.tiff", height=3, width=4.5, units="in", dpi=300)
-
-# C
-
-fig8DataC <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPhenotypes.csv")
-
-#Reduce to QX240 and greater
-
-pq.n <- fig8DataC %>% mutate(ind = as.numeric(str_split_fixed(strain, "QX", 2)[,2])) %>% filter(ind > 239) %>% select(-ind) %>%
-  select(drug, strain, norm.n)
-
-ggplot(pq.n, aes(x = norm.n)) + 
-  geom_bar(aes(fill = drug), position="dodge") + 
-  xlab("Normalized Fecundity") + ylab("Count") + 
-  scale_fill_manual(values=c("control"="black", "paraquat"="red")) + 
-  theme_bw() +
-  theme(axis.text.x = element_text(size=10, color="black"),
-        axis.text.y = element_text(size=10, color="black"),
-        axis.title.x = element_text(size=10, face="bold", color="black"),
-        axis.title.y = element_text(size=10, face="bold", color="black"),
-        strip.text.x = element_text(size=10, face="bold", color="black"),
-        strip.text.y = element_text(size=12, face="bold", color="black"),
-        legend.position="none",
-        plot.title = element_text(size=12, face="bold"))
-
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_normEXTpq/normnhist.tiff", height=3, width=3, units="in", dpi=300)
-
-# D
-
-fig8DataDControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="paraquat.norm.n")
-fig8DataDControlMap$chr <- ifelse(fig8DataDControlMap$chr==1, "I",
-                                  ifelse(fig8DataDControlMap$chr==2, "II",
-                                         ifelse(fig8DataDControlMap$chr==3, "III",
-                                                ifelse(fig8DataDControlMap$chr==4, "IV",
-                                                       ifelse(fig8DataDControlMap$chr==5, "V", "X")))))
-peaksDF <- fig8DataDControlMap[!is.na(fig8DataDControlMap$var.exp) & as.character(fig8DataDControlMap$trait)=="paraquat.norm.n",]
-
-#No significant mappings, so I will not have a C and D in the paper.
-
-## Table 1, all QTL mapping results
-
-tabdf <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(!is.na(var.exp))
-tabdf$chr <- ifelse(tabdf$chr==1, "I",
-                        ifelse(tabdf$chr==2, "II",
-                               ifelse(tabdf$chr==3, "III",
-                                      ifelse(tabdf$chr==4, "IV",
-                                             ifelse(tabdf$chr==5, "V", "X")))))
-
-tabdf2 <- tabdf %>% 
-  mutate(condition = str_split_fixed(trait, pattern="\\.", n=2)[,1]) %>% 
-  mutate(trait2 = str_split_fixed(trait, pattern="\\.", n=2)[,2]) %>%
-  select(-trait) %>% rename(trait = trait2) %>%
-  filter(!grepl(trait, pattern="f.")) %>%
-  filter(!grepl(trait, pattern="react.")) %>%
-  arrange(condition, trait, chr)
-                           
-write.table(tabdf2, file="~/Dropbox/HTA + new RIAIL paper/Tables/allQTL.csv", sep=",", quote=F, row.names=F, col.names=T)
-
-## Table, all phenotype data for RIAILs
-
-tab2 <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/MappingPhenotypes.csv")
-
-tab2 <- tab2[,!grepl(colnames(tab2), pattern="react.")]
-tab2 <- tab2[,!grepl(colnames(tab2), pattern="f.")]
-
-write.table(tab2, file="~/Dropbox/HTA + new RIAIL paper/Tables/allpheno.csv", sep=",", quote=F, row.names=F, col.names=T)
-
-## Table, all genotype data for new RIAILs, QX240-QX539
-
-genos <- data.frame(fread("~/Dropbox/AndersenLab/LabFolders/Stefan/GWAS/NIL_generation/N2xCB4856_598RIAILs_gen.csv",
-                          header = T))
-
-load("~/Dropbox/AndersenLab/RCode/Linkage mapping/markers244.Rda")
-
-genos2 <- do.call(cbind, lapply(genos[,4:ncol(genos)], function(x){
-  temp <- data.frame(gen = x)
-  temp <- mutate(temp, num = ifelse(gen =="AA",1,
-                                    ifelse(gen=="AB",0,NA)))
-  temp <- select(temp, -gen)
-}))
-
-genos3 <- data.frame(genos[,1:3], genos2)
-colnames(genos3) <- c("id","chr","cM", seq(1,ncol(genos3)-3))
-
-genos5 <- genos3 %>%
-  gather(key=strain,value=geno,-id  ,-chr,  -cM) %>% 
-  mutate(numst = as.numeric(as.character(strain))) %>%
-  filter(numst > 239) %>%
-  select(-numst) %>%
-  spread(key=strain, value=geno) %>%
-  arrange(chr, cM)
-
-genos6 <- data.frame(genos5[,1:3], WS244.pos=as.numeric(markers$WS244.pos[match(genos5$id, markers$SNP)]), genos5[,4:362] )
-
-colnames(genos6) <- c("id", "chr", "cM", "WS244.pos", paste0("QX", seq(from=240, to=598)))
-
-#1 = N2, 2 = CB4856
-
-write.table(genos6, file="~/Dropbox/HTA + new RIAIL paper/Tables/allnewgeno.csv", sep=",", quote=F, row.names=F, col.names=T)
-
-## Figure, all new RIAIL genotypes
-
-load(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_newRIAILgenotypes/geno_long.RData")
-
-ggplot(mgen)+
-  aes(x = ind, y= strain, color = ifelse(geno=="0","CB4856",
-                                         ifelse(geno=="1","N2","2")), 
-      fill = ifelse(geno=="0","CB4856",
-                    ifelse(geno=="1","N2","2"))) +
-  scale_color_manual(values=c("CB4856"="blue","N2"="orange","2"="gray"), name = "Genotype")+
-  scale_fill_manual(values=c("CB4856"="blue","N2"="orange","2"="gray"), name = "Genotype")+
-  geom_tile(size=1) +
-  labs(y = "RIAIL", x = "Marker") +
-  theme(axis.text.x = element_text(size=12, color="black"),
-        axis.text.y = element_text(size=0, face="bold", color="black"),
-        axis.title.x = element_text(size=12, face="bold", color="black"),
-        axis.title.y = element_text(size=12, face="bold", color="black"),
-        legend.position="none")
- 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_newRIAILgenotypes/genopic.tiff", height=6.5, width=6.5, units="in", dpi=300)
-
-
-## Figure X, all linkage mapping results for control and paraquat
-
-tabdf <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(!is.na(var.exp))
-tabdf$chr <- ifelse(tabdf$chr==1, "I",
-                    ifelse(tabdf$chr==2, "II",
-                           ifelse(tabdf$chr==3, "III",
-                                  ifelse(tabdf$chr==4, "IV",
-                                         ifelse(tabdf$chr==5, "V", "X")))))
-
-tabdf2 <- tabdf %>% 
-  mutate(condition = str_split_fixed(trait, pattern="\\.", n=2)[,1]) %>% 
-  mutate(trait2 = str_split_fixed(trait, pattern="\\.", n=2)[,2]) %>%
-  select(-trait) %>% rename(trait = trait2) %>%
-  arrange(condition, trait, chr)
-
-tabdf2$grp <- ifelse(tabdf2$condition == "control", 1, 2)
-
-tabdf2$grp <- ifelse(grepl(tabdf2$trait, pattern="resid"), 3, tabdf2$grp)
-tabdf2$grp <- factor(tabdf2$grp, labels = c("Control", "Paraquat", "Paraquat\n-control"))
-tabdf3 <- tabdf2 %>% filter(!(grepl("react.", trait))) %>% filter(!grepl("f.", trait))
-
-ggplot(tabdf3) + aes(x=pos/1e6) + 
-  geom_bar(binwidth=0.5) + 
-  labs(x="Position (Mb)", y="Number of QTL") +
-  facet_grid(grp~chr, scales="free_y") + 
-  theme_bw() +
-  theme(axis.text.x = element_text(size=0, color="black"),
-        axis.text.y = element_text(size=12, color="black"),
-        axis.title.x = element_text(size=12, face="bold", color="black"),
-        axis.title.y = element_text(size=12, face="bold", color="black"),
-        strip.text.x = element_text(size=12, face="bold", color="black"),
-        strip.text.y = element_text(size=12, face="bold", color="black"),
-        plot.title = element_text(size=12, face="bold"))
-
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_allLM/allLM.tiff", height=4, width=7.5, units="in", dpi=300)
 
 ####----------------------------------------------------#####
 ## Figure S1
@@ -787,7 +627,28 @@ ggplot(data=gt2) + aes(x=pos/1000000, y=BB) + geom_line(size=0.5) +
 
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_AlleleFreq/AF_pts.tiff", height=3, width=6, units="in", dpi=300)
 
+####----------------------------------------------------#####
+## Figure S3B
+## All new RIAIL genotypes
 
+load(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_newRIAILgenotypes/geno_long.RData")
+
+ggplot(mgen)+
+  aes(x = ind, y= strain, color = ifelse(geno=="0","CB4856",
+                                         ifelse(geno=="1","N2","2")), 
+      fill = ifelse(geno=="0","CB4856",
+                    ifelse(geno=="1","N2","2"))) +
+  scale_color_manual(values=c("CB4856"="blue","N2"="orange","2"="gray"), name = "Genotype")+
+  scale_fill_manual(values=c("CB4856"="blue","N2"="orange","2"="gray"), name = "Genotype")+
+  geom_tile(size=1) +
+  labs(y = "RIAIL", x = "Marker") +
+  theme(axis.text.x = element_text(size=12, color="black"),
+        axis.text.y = element_text(size=0, face="bold", color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        legend.position="none")
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_newRIAILgenotypes/genopic.tiff", height=6.5, width=6.5, units="in", dpi=300)
 
 ####----------------------------------------------------#####
 ## Figure S4
@@ -849,3 +710,181 @@ ggplot(data=tabdf2) + aes(x=var.exp) + geom_histogram() +
         plot.title = element_text(size=12, face="bold"))
 
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_powercalcs/VE.tiff", height=4.5, width=4.5, units="in", dpi=300)
+
+####----------------------------------------------------#####
+#Figure -Correlation supplement
+
+pheno <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/SummarizedProcPhenotypes.csv")
+
+#Remove old RIAIL data
+pheno <- pheno %>% filter(id>239)
+
+#Separate into control and pq
+
+ctrl <- pheno %>% filter(drug == "control")
+pq <- pheno %>% filter(drug=="paraquat")
+
+#Reduce to just control.resid.a and paraquat.resid
+ctrl <- ctrl %>% select(id, drug, resid.a.n:resid.a.iqr.norm.EXT)
+pq <- pq %>% select(id:resid.iqr.norm.EXT) 
+
+## A
+
+#Melt and look at correlation
+cor.ctrl <- melt(cor(ctrl[3:ncol(ctrl)], use="pairwise.complete.obs", method="spearman"))
+
+red.cor.ctrl <- cor.ctrl %>% separate(Var1, into=c("bla", "trait1"), sep="resid.a.") %>% select(-bla) %>%
+  separate(Var2, into=c("bla", "trait2"), sep="resid.a.") %>% select(-bla)
+
+red.cor.ctrl$trait1 <- factor(red.cor.ctrl$trait1, levels=c("n", "q10.TOF", "q10.EXT", "q25.TOF", "q25.EXT", 
+                                              "median.TOF", "median.EXT", "mean.TOF", "mean.EXT",
+                                              "q75.TOF", "q75.EXT", "q90.TOF", "q90.EXT", 
+                                              "iqr.TOF", "iqr.EXT", "var.TOF", "var.EXT",
+                                              "q10.norm.EXT","q25.norm.EXT","median.norm.EXT","mean.norm.EXT",
+                                              "q75.norm.EXT","q90.norm.EXT","iqr.norm.EXT", "var.norm.EXT"))
+
+red.cor.ctrl$trait2 <- factor(red.cor.ctrl$trait2, levels=c("n", "q10.TOF", "q10.EXT", "q25.TOF", "q25.EXT", 
+                                                            "median.TOF", "median.EXT", "mean.TOF", "mean.EXT",
+                                                            "q75.TOF", "q75.EXT", "q90.TOF", "q90.EXT", 
+                                                            "iqr.TOF", "iqr.EXT", "var.TOF", "var.EXT",
+                                                            "q10.norm.EXT","q25.norm.EXT","median.norm.EXT","mean.norm.EXT",
+                                                            "q75.norm.EXT","q90.norm.EXT","iqr.norm.EXT", "var.norm.EXT"))
+#Plot by geom_tile
+  
+ggplot(red.cor.ctrl)+
+  aes(x = trait1, y = trait2)+
+  geom_tile(aes(fill=value^2))+
+  scale_fill_gradientn(colours=terrain.colors(6), name=expression(bold(italic("r")^2)))+
+  theme_bw() +
+  theme(axis.text.x = element_text(size=10, face="bold", color="black", angle = 60, hjust=1),
+        axis.text.y = element_text(size=10, face="bold", color="black"),
+        panel.background = element_rect(fill = '#E5E8E8')) +
+  labs(x=NULL, y= NULL)
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_cor/control_corr.tiff", height=7.5, width=7.5, units="in", dpi=300)
+
+## B
+
+#Melt and look at correlation
+cor.pq <- melt(cor(pq[3:ncol(pq)], use="pairwise.complete.obs", method="spearman"))
+
+red.cor.pq <- cor.pq %>% separate(Var1, into=c("bla", "trait1"), sep="resid.") %>% select(-bla) %>%
+  separate(Var2, into=c("bla", "trait2"), sep="resid.") %>% select(-bla)
+
+red.cor.pq$trait1 <- factor(red.cor.pq$trait1, levels=c("n", "q10.TOF", "q10.EXT", "q25.TOF", "q25.EXT", 
+                                                        "median.TOF", "median.EXT", "mean.TOF", "mean.EXT",
+                                                        "q75.TOF", "q75.EXT", "q90.TOF", "q90.EXT", 
+                                                        "iqr.TOF", "iqr.EXT", "var.TOF", "var.EXT",
+                                                        "q10.norm.EXT","q25.norm.EXT","median.norm.EXT","mean.norm.EXT",
+                                                        "q75.norm.EXT","q90.norm.EXT","iqr.norm.EXT", "var.norm.EXT"))
+
+red.cor.pq$trait2 <- factor(red.cor.pq$trait2, levels=c("n", "q10.TOF", "q10.EXT", "q25.TOF", "q25.EXT", 
+                                                        "median.TOF", "median.EXT", "mean.TOF", "mean.EXT",
+                                                        "q75.TOF", "q75.EXT", "q90.TOF", "q90.EXT", 
+                                                        "iqr.TOF", "iqr.EXT", "var.TOF", "var.EXT",
+                                                        "q10.norm.EXT","q25.norm.EXT","median.norm.EXT","mean.norm.EXT",
+                                                        "q75.norm.EXT","q90.norm.EXT","iqr.norm.EXT", "var.norm.EXT"))
+
+#Plot by geom_tile
+
+ggplot(red.cor.pq)+
+  aes(x = trait1, y = trait2)+
+  geom_tile(aes(fill=value^2))+
+  scale_fill_gradientn(colours=terrain.colors(6), name=expression(bold(italic("r")^2)))+
+  theme_bw() +
+  theme(axis.text.x = element_text(size=10, face="bold", color="black", angle = 60, hjust=1),
+        axis.text.y = element_text(size=10, face="bold", color="black"),
+        panel.background = element_rect(fill = '#E5E8E8')) +
+  labs(x=NULL, y= NULL)
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_cor/pq_corr.tiff", height=7.5, width=7.5, units="in", dpi=300)
+
+#####------------------------------------------------------------------------#####
+## Table 1, all QTL mapping results
+
+tabdf <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(!is.na(var.exp))
+tabdf$chr <- ifelse(tabdf$chr==1, "I",
+                    ifelse(tabdf$chr==2, "II",
+                           ifelse(tabdf$chr==3, "III",
+                                  ifelse(tabdf$chr==4, "IV",
+                                         ifelse(tabdf$chr==5, "V", "X")))))
+
+tabdf2 <- tabdf %>% 
+  mutate(condition = str_split_fixed(trait, pattern="\\.", n=2)[,1]) %>% 
+  mutate(trait2 = str_split_fixed(trait, pattern="\\.", n=2)[,2]) %>%
+  select(-trait) %>% rename(trait = trait2) %>%
+  filter(!grepl(trait, pattern="f.")) %>%
+  filter(!grepl(trait, pattern="react.")) %>%
+  arrange(condition, trait, chr)
+
+write.table(tabdf2, file="~/Dropbox/HTA + new RIAIL paper/Tables/allQTL.csv", sep=",", quote=F, row.names=F, col.names=T)
+
+## Table, all phenotype data for RIAILs
+
+tab2 <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Data/ProcessedPhenotypes.csv")
+
+write.table(tab2, file="~/Dropbox/HTA + new RIAIL paper/Tables/allpheno.csv", sep=",", quote=F, row.names=F, col.names=T)
+
+## Table, all genotype data for new RIAILs, QX240-QX539
+
+genos <- data.frame(fread("~/Dropbox/AndersenLab/LabFolders/Stefan/GWAS/NIL_generation/N2xCB4856_598RIAILs_gen.csv",
+                          header = T))
+
+load("~/Dropbox/AndersenLab/RCode/Linkage mapping/markers244.Rda")
+
+genos2 <- do.call(cbind, lapply(genos[,4:ncol(genos)], function(x){
+  temp <- data.frame(gen = x)
+  temp <- mutate(temp, num = ifelse(gen =="AA",1,
+                                    ifelse(gen=="AB",0,NA)))
+  temp <- select(temp, -gen)
+}))
+
+genos3 <- data.frame(genos[,1:3], genos2)
+colnames(genos3) <- c("id","chr","cM", seq(1,ncol(genos3)-3))
+
+genos5 <- genos3 %>%
+  gather(key=strain,value=geno,-id  ,-chr,  -cM) %>% 
+  mutate(numst = as.numeric(as.character(strain))) %>%
+  filter(numst > 239) %>%
+  select(-numst) %>%
+  spread(key=strain, value=geno) %>%
+  arrange(chr, cM)
+
+genos6 <- data.frame(genos5[,1:3], WS244.pos=as.numeric(markers$WS244.pos[match(genos5$id, markers$SNP)]), genos5[,4:362] )
+
+colnames(genos6) <- c("id", "chr", "cM", "WS244.pos", paste0("QX", seq(from=240, to=598)))
+
+#1 = N2, 2 = CB4856
+
+write.table(genos6, file="~/Dropbox/HTA + new RIAIL paper/Tables/allnewgeno.csv", sep=",", quote=F, row.names=F, col.names=T)
+
+#####------------------------------------------------------------------------#####
+## Figure - not in paper. Traits are correlated, so hot spots are a little weird to consider.
+
+tabdf <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(!is.na(var.exp))
+
+tabdf2 <- tabdf %>% 
+  mutate(condition = str_split_fixed(trait, pattern="\\.", n=2)[,1]) %>% 
+  mutate(trait2 = str_split_fixed(trait, pattern="\\.", n=2)[,2]) %>%
+  select(-trait) %>% rename(trait = trait2) %>%
+  arrange(condition, trait, chr)
+
+tabdf2$grp <- ifelse(tabdf2$condition == "control", 1, 2)
+
+tabdf2$grp <- factor(tabdf2$grp, labels = c("Control", "Paraquat"))
+
+ggplot(tabdf2) + aes(x=pos/1e6) + 
+  geom_bar(binwidth=0.5) + 
+  labs(x="Position (Mb)", y="Number of QTL") +
+  facet_grid(grp~chr, scales="free_y") + 
+  theme_bw() +
+  theme(axis.text.x = element_text(size=0, color="black"),
+        axis.text.y = element_text(size=12, color="black"),
+        axis.title.x = element_text(size=12, face="bold", color="black"),
+        axis.title.y = element_text(size=12, face="bold", color="black"),
+        strip.text.x = element_text(size=12, face="bold", color="black"),
+        strip.text.y = element_text(size=12, face="bold", color="black"),
+        plot.title = element_text(size=12, face="bold"))
+
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_allLM/allLM.tiff", height=4, width=7.5, units="in", dpi=300)
+

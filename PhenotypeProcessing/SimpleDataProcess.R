@@ -120,7 +120,7 @@ colnames(controls) <- c("assay", "control", "plates")
 finalData <- completeData %>% group_by(drug) %>% do(regress(., completeData, controls)) %>% arrange(assay) %>% data.frame()
 #finalData[finalData$drug=="control",which(colnames(finalData)=="resid.n"):ncol(finalData)] <- NA
 
-ggplot(finalData) + aes(x=n) + geom_histogram() + facet_grid(drug~.)
+#ggplot(finalData) + aes(x=n) + geom_histogram() + facet_grid(drug~.)
 
 #Need to prune outlier wells from data
 
@@ -130,10 +130,16 @@ red.final <- finalData %>%
   filter(n<330) %>%
   filter(!is.na(strain))
 
-ggplot(red.final) + aes(x=n) + geom_histogram() + facet_grid(drug~.)
+write.csv(red.final, file="Data/ProcessedPhenotypesFull.csv", row.names=FALSE)
+
+#ggplot(red.final) + aes(x=n) + geom_histogram() + facet_grid(drug~.)
 
 #Reduce data to resid and resid.a. Also, eliminate all f. traits.
 
-red.final2 <- red.final %>% select(assay:strain, resid.n:resid.iqr.yellow, resid.a.n:resid.a.iqr.yellow) %>% data.frame()
+red.final2 <- red.final %>% select(drug, strain, resid.n:resid.iqr.yellow, resid.a.n:resid.a.iqr.yellow) %>% data.frame()
 
 write.csv(red.final2, file="Data/ProcessedPhenotypes.csv", row.names=FALSE)
+
+
+
+
