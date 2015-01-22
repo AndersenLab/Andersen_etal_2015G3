@@ -803,11 +803,6 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_cor/pq_corr.tiff", h
 ## Table 1, all QTL mapping results
 
 tabdf <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(!is.na(var.exp))
-tabdf$chr <- ifelse(tabdf$chr==1, "I",
-                    ifelse(tabdf$chr==2, "II",
-                           ifelse(tabdf$chr==3, "III",
-                                  ifelse(tabdf$chr==4, "IV",
-                                         ifelse(tabdf$chr==5, "V", "X")))))
 
 tabdf2 <- tabdf %>% 
   mutate(condition = str_split_fixed(trait, pattern="\\.", n=2)[,1]) %>% 
