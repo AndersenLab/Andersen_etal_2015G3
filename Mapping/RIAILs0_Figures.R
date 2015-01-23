@@ -246,11 +246,7 @@ ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q75M
 
 # F
 fig6DataFControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.resid.a.q90.TOF")
-# fig6DataFControlMap$chr <- ifelse(fig6DataFControlMap$chr==1, "I",
-#                                   ifelse(fig6DataFControlMap$chr==2, "II",
-#                                          ifelse(fig6DataFControlMap$chr==3, "III",
-#                                                 ifelse(fig6DataFControlMap$chr==4, "IV",
-#                                                        ifelse(fig6DataFControlMap$chr==5, "V", "X")))))
+
 peaksDF <- fig6DataFControlMap[!is.na(fig6DataFControlMap$var.exp) & as.character(fig6DataFControlMap$trait)=="control.resid.a.q90.TOF",]
 
 ggplot(fig6DataFControlMap) +
@@ -275,13 +271,9 @@ ggplot(fig6DataFControlMap) +
 ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/q90Map.tiff", height=2, width=3, units="in", dpi=300)
 
 # G
-fig6DataGControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.resid.a.iqr.TOF")
-# fig6DataGControlMap$chr <- ifelse(fig6DataGControlMap$chr==1, "I",
-#                                   ifelse(fig6DataGControlMap$chr==2, "II",
-#                                          ifelse(fig6DataGControlMap$chr==3, "III",
-#                                                 ifelse(fig6DataGControlMap$chr==4, "IV",
-#                                                        ifelse(fig6DataGControlMap$chr==5, "V", "X")))))
-peaksDF <- fig6DataGControlMap[!is.na(fig6DataGControlMap$var.exp) & as.character(fig6DataGControlMap$trait)=="control.resid.a.iqr.TOF",]
+fig6DataGControlMap <- read.csv("~/Dropbox/HTA + new RIAIL paper/HTA_Linkage/Mapping/MappingResults.csv") %>% filter(trait=="control.resid.a.var.TOF")
+
+peaksDF <- fig6DataGControlMap[!is.na(fig6DataGControlMap$var.exp) & as.character(fig6DataGControlMap$trait)=="control.resid.a.var.TOF",]
 
 ggplot(fig6DataGControlMap) +
   geom_line(aes(x=pos/1e6, y=LOD), size=0.5) +
@@ -301,7 +293,7 @@ ggplot(fig6DataGControlMap) +
         strip.text.y = element_text(size=12, face="bold", color="black"),
         plot.title = element_text(size=12, face="bold"))
 
-ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/iqrMap.tiff", height=2, width=3, units="in", dpi=300)
+ggsave(file="~/Dropbox/HTA + new RIAIL paper/Figures/Figure_TOFdistribution/varMap.tiff", height=2, width=3, units="in", dpi=300)
 
 #####------------------------------------------------------------------------#####
 ## Figure 4
