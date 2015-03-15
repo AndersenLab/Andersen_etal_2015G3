@@ -1,7 +1,7 @@
 Phenotype to Mapping Pipeline
 =============================
 
-This repo contains all of the data and code to replicate the figures and findings in *Andersen et al. 2015* G3 manuscript.
+This repo contains all of the data and code to replicate the figures and findings in **Andersen *et al.* 2015** G3 manuscript.
 
 ## Data
 
